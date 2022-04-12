@@ -14,6 +14,7 @@ type Model struct {
 func NewAddressBar(handler *handler.RequestHandler) Model {
 	t := textinput.New()
 	t.Placeholder = "/GET @adeton/shops"
+	t.Prompt = "¬ "
 
 	t.Focus()
 
@@ -23,26 +24,26 @@ func NewAddressBar(handler *handler.RequestHandler) Model {
 	}
 }
 
-func (bar Model) Init() tea.Cmd {
+func (model Model) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-func (bar Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
-			bar.handler.MakeRequest()
-			return bar, nil
+			model.handler.MakeRequest()
+			return model, nil
 		}
 	}
 
 	var cmd tea.Cmd
-	bar.input, cmd = bar.input.Update(msg)
+	model.input, cmd = model.input.Update(msg)
 
-	return bar, cmd
+	return model, cmd
 }
 
-func (bar Model) View() string {
-	return bar.input.View()
+func (model Model) View() string {
+	return model.input.View()
 }

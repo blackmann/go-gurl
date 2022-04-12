@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/blackmann/gurl/common/commands"
 	"github.com/blackmann/gurl/handler"
 	"github.com/blackmann/gurl/ui/addressbar"
 	"github.com/blackmann/gurl/ui/statusbar"
+	"github.com/blackmann/gurl/ui/viewport"
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"log"
@@ -14,8 +15,9 @@ import (
 )
 
 type keymap struct {
-	nextTab key.Binding
-	quit    key.Binding
+	nextTab           key.Binding
+	quit              key.Binding
+	toggleCommandMode key.Binding
 }
 
 func getDefaultKeyBinds() keymap {
@@ -25,6 +27,8 @@ func getDefaultKeyBinds() keymap {
 			key.WithHelp("^tab", "Toggle Regions")),
 
 		quit: key.NewBinding(key.WithKeys("ctrl+c")),
+
+		toggleCommandMode: key.NewBinding(key.WithKeys("esc")),
 	}
 }
 
@@ -40,25 +44,73 @@ type model struct {
 
 	// State
 	activeRegion int
+	commandMode  bool
+	command      string
 }
 
 func (m model) Init() tea.Cmd {
 	return m.addressBar.Init()
 }
 
-func (m *model) resizeViewport(netHeight int) {
+func (m *model) resizeViewport(netHeight int, netWidth int) {
 	statusBarHeight := lipgloss.Height(m.statusBar.View())
 	addressBarHeight := lipgloss.Height(m.addressBar.View())
 
 	m.viewport.Height = netHeight - (statusBarHeight + addressBarHeight)
+	m.statusBar, _ = m.statusBar.Update(statusbar.Width(netWidth))
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if m.commandMode {
+			if key.Matches(msg, m.keybinds.toggleCommandMode) {
+				m.commandMode = false
+				m.command = ""
+				m.statusBar, _ = m.statusBar.Update(statusbar.Command(""))
+
+				return m, nil
+			}
+
+			var cmd tea.Cmd
+
+			// Only accept letters
+			switch msg.Type {
+			case tea.KeyRunes:
+				m.command += string(msg.Runes[0])
+
+			case tea.KeyBackspace:
+				if len(m.command) > 0 {
+					m.command = m.command[:len(m.command)-1]
+				}
+
+			case tea.KeyEnter:
+				cmd = commands.CreateFreeCommand(m.command)
+				m.command = ""
+				m.commandMode = false
+			}
+
+			var prefix string
+			if m.commandMode {
+				prefix = "> "
+			} else {
+				prefix = ""
+			}
+
+			m.statusBar, _ = m.statusBar.Update(statusbar.Command(fmt.Sprintf("%s%s", prefix, m.command)))
+
+			return m, cmd
+		}
+
 		switch {
 		case key.Matches(msg, m.keybinds.nextTab):
 			m.activeRegion = (m.activeRegion + 1) % 2 // only two views
+			return m, nil
+
+		case key.Matches(msg, m.keybinds.toggleCommandMode):
+			m.commandMode = true
+			m.statusBar, _ = m.statusBar.Update(statusbar.Command(">"))
+
 			return m, nil
 
 		case key.Matches(msg, m.keybinds.quit):
@@ -66,7 +118,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		m.resizeViewport(msg.Height)
+		m.resizeViewport(msg.Height, msg.Width)
+		return m, nil
+
+	case commands.FreeCommand:
+		var cmd tea.Cmd
+		m.viewport, cmd = m.viewport.Update(msg)
+
+		return m, cmd
 	}
 
 	var cmds []tea.Cmd
@@ -103,7 +162,8 @@ func newAppModel() model {
 		addressBar: addressbar.NewAddressBar(&h),
 		handler:    &h,
 		keybinds:   getDefaultKeyBinds(),
-		statusBar:  statusbar.NewStatusBar(&h),
+		statusBar:  statusbar.NewStatusBar(),
+		viewport:   viewport.NewViewport(),
 	}
 }
 

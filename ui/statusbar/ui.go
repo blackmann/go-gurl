@@ -2,7 +2,7 @@ package statusbar
 
 import (
 	"fmt"
-	"github.com/blackmann/gurl/handler"
+	"github.com/blackmann/gurl/common/status"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -10,48 +10,78 @@ import (
 
 var (
 	barStyle = lipgloss.NewStyle().
-			Padding(0, 1, 0, 1)
+		Padding(0, 1, 0, 1)
 
 	idleStatusStyle = lipgloss.NewStyle().Background(lipgloss.Color("#fff")).
-			Foreground(lipgloss.Color("#000")).
-			Padding(0, 1, 0, 1)
+		Foreground(lipgloss.Color("#000")).
+		Padding(0, 1, 0, 1)
 )
 
+type updateCommand string
+
+type widthUpdate int
+
 type Model struct {
-	handler  *handler.RequestHandler
 	spinner  spinner.Model
 	spinning bool
+
+	width   int
+	status  status.Status
+	command string
 }
 
-func NewStatusBar(handler *handler.RequestHandler) Model {
+func Command(command string) tea.Msg {
+	return updateCommand(command)
+}
+
+func Width(width int) tea.Msg {
+	return widthUpdate(width)
+}
+
+func NewStatusBar() Model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 
-	return Model{handler: handler, spinner: s}
+	return Model{spinner: s}
 }
 
-func (bar Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	if bar.handler.Status == handler.PROCESSING {
-		if !bar.spinning {
-			bar.spinning = true
-			return bar, bar.spinner.Tick
-		}
+func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case updateCommand:
+		model.command = string(msg)
+		return model, nil
 
-		var cmd tea.Cmd
-		bar.spinner, cmd = bar.spinner.Update(msg)
-		return bar, cmd
-	} else {
-
-	}
-
-	return bar, nil
-}
-
-func (bar Model) View() string {
-	switch bar.handler.Status {
-	case handler.PROCESSING:
-		return fmt.Sprintf("%s Processing", bar.spinner.View())
 	default:
-		return barStyle.Render(idleStatusStyle.Render("Idle"))
+		if model.status == status.PROCESSING {
+			if !model.spinning {
+				model.spinning = true
+				return model, model.spinner.Tick
+			}
+
+			var cmd tea.Cmd
+			model.spinner, cmd = model.spinner.Update(msg)
+			return model, cmd
+		}
 	}
+
+	return model, nil
+}
+
+func (model Model) View() string {
+	var view string
+
+	switch model.status {
+	case status.PROCESSING:
+		view = fmt.Sprintf("%s Processing", model.spinner.View())
+	default:
+		view = barStyle.Render(idleStatusStyle.Render("Idle"))
+	}
+
+	//statusWidth := lipgloss.Width(view)
+
+	if len(model.command) > 0 {
+		view = fmt.Sprintf("%s %s", view, model.command)
+	}
+
+	return lipgloss.NewStyle().Margin(1).Render(view)
 }

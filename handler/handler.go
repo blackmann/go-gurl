@@ -1,20 +1,25 @@
 package handler
 
-type Status int
-
-var (
-	IDLE       Status = 0
-	PROCESSING Status = 1
+import (
+	"github.com/blackmann/gurl/common/status"
+	"time"
 )
 
 type RequestHandler struct {
-	Status Status
+	Status status.Status
 }
 
 func NewRequestHandler() RequestHandler {
 	return RequestHandler{}
 }
 
+func (handler *RequestHandler) makeRequest() {
+	time.Sleep(3 * time.Second)
+	handler.Status = status.IDLE
+}
+
 func (handler *RequestHandler) MakeRequest() {
-	handler.Status = PROCESSING
+	handler.Status = status.PROCESSING
+
+	go handler.makeRequest()
 }
