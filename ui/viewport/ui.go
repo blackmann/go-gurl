@@ -1,8 +1,12 @@
 package viewport
 
 import (
-	"github.com/blackmann/gurl/common/commands"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"github.com/blackmann/gurl/common/appcmd"
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -13,10 +17,15 @@ type keymap struct {
 }
 
 type Model struct {
-	activeTab int
-	keybinds  keymap
-	tabs      []string
-	Height    int
+	viewport     viewport.Model
+	activeTab    int
+	keybinds     keymap
+	tabs         []string
+	responseBody string
+	enabled      bool
+
+	height int
+	Width  int
 }
 
 func NewViewport() Model {
@@ -32,24 +41,45 @@ func NewViewport() Model {
 	}
 }
 
-func (model Model) View() string {
-	viewportStyle := lipgloss.NewStyle().Height(model.Height)
+func (model *Model) SetResponse(response string) {
+	model.responseBody = response
+}
 
-	styledTabs := make([]string, len(model.tabs))
+func (model *Model) SetEnabled(enabled bool) {
+	model.enabled = enabled
+}
 
-	for i, tab := range model.tabs {
-		if i != model.activeTab {
-			styledTabs = append(styledTabs, inactiveTabStyle.Render(tab))
+func (model *Model) SetHeight(height int) {
+	model.height = height
+	model.viewport.Height = height - 4
+}
+
+func (model Model) getContent() string {
+	content := ""
+
+	switch model.activeTab {
+	case 2:
+		var pretty bytes.Buffer
+		if err := json.Indent(&pretty, []byte(model.responseBody), "", "  "); err == nil {
+			content = pretty.String()
 		} else {
-			styledTabs = append(styledTabs, activeTabStyle.Render(tab))
+			content = model.responseBody
+		}
+
+		content = lipgloss.NewStyle().Width(model.Width-2).
+			Margin(0, 1, 0, 1).
+			Render(content)
+
+		if !model.enabled {
+			content = disabledContent.Render(content)
 		}
 	}
 
-	tabsRow := tabGroupStyle.Render(lipgloss.JoinHorizontal(lipgloss.Left, styledTabs...))
-	return viewportStyle.Render(tabsRow)
+	return content
 }
 
 func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
@@ -66,10 +96,13 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 			model.activeTab = newTab
 
-			return model, nil
+		default:
+			model.viewport, cmd = model.viewport.Update(msg)
+
+			return model, cmd
 		}
 
-	case commands.FreeCommand:
+	case appcmd.FreeText:
 		switch msg {
 		case ":q":
 			model.activeTab = 0
@@ -82,5 +115,26 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	}
 
+	content := model.getContent()
+	model.viewport.SetContent(content)
+
 	return model, nil
+}
+
+func (model Model) View() string {
+	viewportStyle := lipgloss.NewStyle().Height(model.height)
+
+	styledTabs := make([]string, len(model.tabs))
+
+	for i, tab := range model.tabs {
+		if i != model.activeTab {
+			styledTabs = append(styledTabs, inactiveTabStyle.Render(tab))
+		} else {
+			styledTabs = append(styledTabs, activeTabStyle.Render(tab))
+		}
+	}
+
+	tabsRow := tabGroupStyle.Render(lipgloss.JoinHorizontal(lipgloss.Left, styledTabs...))
+
+	return viewportStyle.Render(fmt.Sprintf("%s\n%s", tabsRow, model.viewport.View()))
 }

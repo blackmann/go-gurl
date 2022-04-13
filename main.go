@@ -2,16 +2,18 @@ package main
 
 import (
 	"fmt"
-	"github.com/blackmann/gurl/common/commands"
+	"github.com/blackmann/gurl/common/appcmd"
+	"github.com/blackmann/gurl/common/request"
 	"github.com/blackmann/gurl/common/status"
-	"github.com/blackmann/gurl/handler"
 	"github.com/blackmann/gurl/ui/addressbar"
 	"github.com/blackmann/gurl/ui/statusbar"
 	"github.com/blackmann/gurl/ui/viewport"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"io"
 	"log"
+	"net/http"
 	"os"
 )
 
@@ -36,7 +38,6 @@ func getDefaultKeyBinds() keymap {
 type model struct {
 	// Config
 	keybinds keymap
-	handler  *handler.RequestHandler
 
 	// Views
 	addressBar addressbar.Model
@@ -57,14 +58,29 @@ func (m *model) resizeViewport(netHeight int, netWidth int) {
 	statusBarHeight := lipgloss.Height(m.statusBar.View())
 	addressBarHeight := lipgloss.Height(m.addressBar.View())
 
-	m.viewport.Height = netHeight - (statusBarHeight + addressBarHeight)
+	m.viewport.SetHeight(netHeight - (statusBarHeight + addressBarHeight))
+	m.viewport.Width = netWidth
 	m.statusBar, _ = m.statusBar.Update(statusbar.Width(netWidth))
 }
 
-func (m model) submitRequest() tea.Msg {
-	m.handler.MakeRequest()
+func (m model) submitRequest(address request.Address) tea.Cmd {
+	return func() tea.Msg {
+		res, err := http.Get(address.Url)
 
-	return commands.CompleteRequest
+		if err != nil {
+			log.Panicln("Error occurred", err)
+			return nil
+		}
+		body, err := io.ReadAll(res.Body)
+
+		if err != nil {
+			log.Panicln("Error occured while reading response body", err)
+		}
+
+		return appcmd.Response{
+			Body: string(body),
+		}
+	}
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -94,7 +110,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 			case tea.KeyEnter:
-				cmd = commands.CreateFreeCommand(m.command)
+				cmd = getFreeTextCommand(m.command)
 				m.command = ""
 				m.commandMode = false
 			}
@@ -130,21 +146,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.resizeViewport(msg.Height, msg.Width)
 		return m, nil
 
-	case commands.FreeCommand:
+	case appcmd.FreeText:
 		var cmd tea.Cmd
 		m.viewport, cmd = m.viewport.Update(msg)
 
 		return m, cmd
 
-	case commands.AppCommand:
+	case appcmd.Trigger:
 		switch msg {
-		case commands.NewRequest:
+		case appcmd.NewRequest:
 			m.statusBar = m.statusBar.SetStatus(status.PROCESSING)
-			cmds = append(cmds, m.submitRequest)
+			m.viewport.SetEnabled(false)
 
-		case commands.CompleteRequest:
-			m.statusBar = m.statusBar.SetStatus(status.IDLE)
+			cmds = append(cmds, m.submitRequest(m.addressBar.GetAddress()))
 		}
+
+	case appcmd.Response:
+		m.viewport.SetResponse(msg.Body)
+		m.viewport.SetEnabled(true)
+
+		m.statusBar = m.statusBar.SetStatus(status.IDLE)
 	}
 
 	var cmd tea.Cmd
@@ -174,14 +195,17 @@ func (m model) View() string {
 }
 
 func newAppModel() model {
-	h := handler.NewRequestHandler()
-
 	return model{
 		addressBar: addressbar.NewAddressBar(),
-		handler:    &h,
 		keybinds:   getDefaultKeyBinds(),
 		statusBar:  statusbar.NewStatusBar(),
 		viewport:   viewport.NewViewport(),
+	}
+}
+
+func getFreeTextCommand(cmd string) tea.Cmd {
+	return func() tea.Msg {
+		return appcmd.FreeText(cmd)
 	}
 }
 

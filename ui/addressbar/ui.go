@@ -1,9 +1,11 @@
 package addressbar
 
 import (
-	"github.com/blackmann/gurl/common/commands"
+	"github.com/blackmann/gurl/common/appcmd"
+	"github.com/blackmann/gurl/common/request"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"strings"
 )
 
 type Model struct {
@@ -32,7 +34,7 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
-			return model, commands.SubmitNewRequest
+			return model, appcmd.SubmitNewRequest
 		}
 	}
 
@@ -44,4 +46,8 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 func (model Model) View() string {
 	return model.input.View()
+}
+
+func (model Model) GetAddress() request.Address {
+	return request.Address{Method: "GET", Url: strings.Trim(model.input.Value(), " ")}
 }
