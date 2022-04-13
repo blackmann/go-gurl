@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/blackmann/gurl/common/commands"
+	"github.com/blackmann/gurl/common/status"
 	"github.com/blackmann/gurl/handler"
 	"github.com/blackmann/gurl/ui/addressbar"
 	"github.com/blackmann/gurl/ui/statusbar"
@@ -60,7 +61,15 @@ func (m *model) resizeViewport(netHeight int, netWidth int) {
 	m.statusBar, _ = m.statusBar.Update(statusbar.Width(netWidth))
 }
 
+func (m model) submitRequest() tea.Msg {
+	m.handler.MakeRequest()
+
+	return commands.CompleteRequest
+}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if m.commandMode {
@@ -126,9 +135,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.viewport, cmd = m.viewport.Update(msg)
 
 		return m, cmd
+
+	case commands.AppCommand:
+		switch msg {
+		case commands.NewRequest:
+			m.statusBar = m.statusBar.SetStatus(status.PROCESSING)
+			cmds = append(cmds, m.submitRequest)
+
+		case commands.CompleteRequest:
+			m.statusBar = m.statusBar.SetStatus(status.IDLE)
+		}
 	}
 
-	var cmds []tea.Cmd
 	var cmd tea.Cmd
 
 	switch m.activeRegion {
@@ -159,7 +177,7 @@ func newAppModel() model {
 	h := handler.NewRequestHandler()
 
 	return model{
-		addressBar: addressbar.NewAddressBar(&h),
+		addressBar: addressbar.NewAddressBar(),
 		handler:    &h,
 		keybinds:   getDefaultKeyBinds(),
 		statusBar:  statusbar.NewStatusBar(),

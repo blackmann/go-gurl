@@ -10,11 +10,11 @@ import (
 
 var (
 	barStyle = lipgloss.NewStyle().
-		Padding(0, 1, 0, 1)
+			Padding(0, 1, 0, 1)
 
 	idleStatusStyle = lipgloss.NewStyle().Background(lipgloss.Color("#fff")).
-		Foreground(lipgloss.Color("#000")).
-		Padding(0, 1, 0, 1)
+			Foreground(lipgloss.Color("#000")).
+			Padding(0, 1, 0, 1)
 )
 
 type updateCommand string
@@ -25,9 +25,9 @@ type Model struct {
 	spinner  spinner.Model
 	spinning bool
 
-	width   int
-	status  status.Status
-	command string
+	width        int
+	status       status.Status
+	commandEntry string
 }
 
 func Command(command string) tea.Msg {
@@ -48,20 +48,21 @@ func NewStatusBar() Model {
 func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case updateCommand:
-		model.command = string(msg)
+		model.commandEntry = string(msg)
 		return model, nil
+	}
 
-	default:
-		if model.status == status.PROCESSING {
-			if !model.spinning {
-				model.spinning = true
-				return model, model.spinner.Tick
-			}
-
-			var cmd tea.Cmd
-			model.spinner, cmd = model.spinner.Update(msg)
-			return model, cmd
+	if model.status == status.PROCESSING {
+		if !model.spinning {
+			model.spinning = true
+			return model, model.spinner.Tick
 		}
+
+		var cmd tea.Cmd
+		model.spinner, cmd = model.spinner.Update(msg)
+		return model, cmd
+	} else {
+		model.spinning = false
 	}
 
 	return model, nil
@@ -77,11 +78,14 @@ func (model Model) View() string {
 		view = barStyle.Render(idleStatusStyle.Render("Idle"))
 	}
 
-	//statusWidth := lipgloss.Width(view)
-
-	if len(model.command) > 0 {
-		view = fmt.Sprintf("%s %s", view, model.command)
+	if len(model.commandEntry) > 0 {
+		view = fmt.Sprintf("%s %s", view, model.commandEntry)
 	}
 
 	return lipgloss.NewStyle().Margin(1).Render(view)
+}
+
+func (model Model) SetStatus(status status.Status) Model {
+	model.status = status
+	return model
 }

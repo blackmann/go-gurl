@@ -6,20 +6,26 @@ import (
 )
 
 type RequestHandler struct {
-	Status status.Status
+	onRequestStart func()
+	onRequestEnd   func()
+	Status         status.Status
 }
 
 func NewRequestHandler() RequestHandler {
 	return RequestHandler{}
 }
 
-func (handler *RequestHandler) makeRequest() {
+func (handler *RequestHandler) MakeRequest() {
+	handler.Status = status.PROCESSING
+
 	time.Sleep(3 * time.Second)
 	handler.Status = status.IDLE
 }
 
-func (handler *RequestHandler) MakeRequest() {
-	handler.Status = status.PROCESSING
+func (handler *RequestHandler) OnStartRequest(f func()) {
+	handler.onRequestStart = f
+}
 
-	go handler.makeRequest()
+func (handler *RequestHandler) OnRequestEnd(f func()) {
+	handler.onRequestEnd = f
 }

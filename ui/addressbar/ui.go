@@ -1,17 +1,16 @@
 package addressbar
 
 import (
-	"github.com/blackmann/gurl/handler"
+	"github.com/blackmann/gurl/common/commands"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 type Model struct {
-	input   textinput.Model
-	handler *handler.RequestHandler
+	input textinput.Model
 }
 
-func NewAddressBar(handler *handler.RequestHandler) Model {
+func NewAddressBar() Model {
 	t := textinput.New()
 	t.Placeholder = "/GET @adeton/shops"
 	t.Prompt = "¬ "
@@ -19,12 +18,12 @@ func NewAddressBar(handler *handler.RequestHandler) Model {
 	t.Focus()
 
 	return Model{
-		input:   t,
-		handler: handler,
+		input: t,
 	}
 }
 
 func (model Model) Init() tea.Cmd {
+	textinput.Blink()
 	return textinput.Blink
 }
 
@@ -33,8 +32,7 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
-			model.handler.MakeRequest()
-			return model, nil
+			return model, commands.SubmitNewRequest
 		}
 	}
 
