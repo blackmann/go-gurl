@@ -8,18 +8,21 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-var (
-	barStyle = lipgloss.NewStyle().
-			Padding(0, 1, 0, 1)
+// A command in this case is an entry from the keyboard
+// that is mapped to an action. For example, ":q" to quit, etc.
+// The action is not necessarily performed by statusbar. We're
+// only using this type as a state update message type.
+//
+//  statusbar.Update(commandInput(":q"))
+//
+// This is a tea.Msg type
+type commandInput string
 
-	idleStatusStyle = lipgloss.NewStyle().Background(lipgloss.Color("#fff")).
-			Foreground(lipgloss.Color("#000")).
-			Padding(0, 1, 0, 1)
-)
-
-type updateCommand string
-
+// A message sent with a value to be set as the statusbar's width
 type widthUpdate int
+
+// A message sent with a value to set as the status' value
+type statusUpdate status.Status
 
 type Model struct {
 	spinner  spinner.Model
@@ -28,14 +31,6 @@ type Model struct {
 	width        int
 	status       status.Status
 	commandEntry string
-}
-
-func Command(command string) tea.Msg {
-	return updateCommand(command)
-}
-
-func Width(width int) tea.Msg {
-	return widthUpdate(width)
 }
 
 func NewStatusBar() Model {
@@ -47,9 +42,13 @@ func NewStatusBar() Model {
 
 func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case updateCommand:
+	case commandInput:
 		model.commandEntry = string(msg)
 		return model, nil
+
+	case statusUpdate:
+		model.status = status.Status(msg)
+		//return model, nil
 	}
 
 	if model.status == status.PROCESSING {
@@ -83,9 +82,4 @@ func (model Model) View() string {
 	}
 
 	return lipgloss.NewStyle().Margin(1).Render(view)
-}
-
-func (model Model) SetStatus(status status.Status) Model {
-	model.status = status
-	return model
 }

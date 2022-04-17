@@ -84,22 +84,17 @@ func (m model) submitRequest(address request.Address) tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmds []tea.Cmd
-
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if m.commandMode {
 			if key.Matches(msg, m.keybinds.toggleCommandMode) {
 				m.commandMode = false
 				m.command = ""
-				m.statusBar, _ = m.statusBar.Update(statusbar.Command(""))
+				m.statusBar, _ = m.statusBar.Update(statusbar.CommandMsg(""))
 
 				return m, nil
 			}
 
-			var cmd tea.Cmd
-
-			// Only accept letters
 			switch msg.Type {
 			case tea.KeyRunes:
 				m.command += string(msg.Runes[0])
@@ -110,9 +105,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 			case tea.KeyEnter:
-				cmd = getFreeTextCommand(m.command)
+				cmd := getFreeTextCommand(m.command)
 				m.command = ""
 				m.commandMode = false
+
+				return m, cmd
 			}
 
 			var prefix string
@@ -122,9 +119,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				prefix = ""
 			}
 
-			m.statusBar, _ = m.statusBar.Update(statusbar.Command(fmt.Sprintf("%s%s", prefix, m.command)))
+			m.statusBar, _ = m.statusBar.Update(statusbar.CommandMsg(fmt.Sprintf("%s%s", prefix, m.command)))
 
-			return m, cmd
+			return m, nil
 		}
 
 		switch {
@@ -134,8 +131,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case key.Matches(msg, m.keybinds.toggleCommandMode):
 			m.commandMode = true
-			m.statusBar, _ = m.statusBar.Update(statusbar.Command(">"))
-
+			m.statusBar, _ = m.statusBar.Update(statusbar.CommandMsg(">"))
 			return m, nil
 
 		case key.Matches(msg, m.keybinds.quit):
@@ -143,47 +139,62 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
+		// TODO: Rewrite
 		m.resizeViewport(msg.Height, msg.Width)
 		return m, nil
 
 	case appcmd.FreeText:
-		var cmd tea.Cmd
-		m.viewport, cmd = m.viewport.Update(msg)
-
-		return m, cmd
+		m.viewport, _ = m.viewport.Update(msg)
+		return m, nil
 
 	case appcmd.Trigger:
 		switch msg {
 		case appcmd.NewRequest:
-			m.statusBar = m.statusBar.SetStatus(status.PROCESSING)
+			var cmds []tea.Cmd
+			var cmd tea.Cmd
+
+			m.statusBar, cmd = m.statusBar.Update(statusbar.StatusMsg(status.PROCESSING))
+			cmds = append(cmds, cmd)
+
+			// TODO: Use .Update
 			m.viewport.SetEnabled(false)
 
 			cmds = append(cmds, m.submitRequest(m.addressBar.GetAddress()))
+
+			return m, tea.Batch(cmds...)
 		}
 
 	case appcmd.Response:
+		// TODO: Use .Update
 		m.viewport.SetResponse(msg.Body)
 		m.viewport.SetEnabled(true)
 
-		m.statusBar = m.statusBar.SetStatus(status.IDLE)
+		m.statusBar, _ = m.statusBar.Update(statusbar.StatusMsg(status.IDLE))
+		return m, nil
 	}
 
-	var cmd tea.Cmd
+	var cmds []tea.Cmd
 
+	// Forward the unhandled command to the active region
 	switch m.activeRegion {
-	// Request bar
 	case 0:
+		var cmd tea.Cmd
 		m.addressBar, cmd = m.addressBar.Update(msg)
+
 		cmds = append(cmds, cmd)
 
-	// Viewport
 	case 1:
+		var cmd tea.Cmd
 		m.viewport, cmd = m.viewport.Update(msg)
+
 		cmds = append(cmds, cmd)
 	}
 
+	// For ticks
+	var cmd tea.Cmd
 	m.statusBar, cmd = m.statusBar.Update(msg)
 	cmds = append(cmds, cmd)
+
 	return m, tea.Batch(cmds...)
 }
 
