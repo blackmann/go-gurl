@@ -1,8 +1,8 @@
 package addressbar
 
 import (
+	"github.com/blackmann/gurl/common"
 	"github.com/blackmann/gurl/common/appcmd"
-	"github.com/blackmann/gurl/common/request"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"strings"
@@ -48,6 +48,6 @@ func (model Model) View() string {
 	return model.input.View()
 }
 
-func (model Model) GetAddress() request.Address {
-	return request.Address{Method: "GET", Url: strings.Trim(model.input.Value(), " ")}
+func (model Model) GetAddress() common.Address {
+	return common.Address{Method: "GET", Url: strings.Trim(model.input.Value(), " ")}
 }

@@ -1,4 +1,4 @@
-package status
+package common
 
 type Status int
 

@@ -2,9 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/blackmann/gurl/common"
 	"github.com/blackmann/gurl/common/appcmd"
-	"github.com/blackmann/gurl/common/request"
-	"github.com/blackmann/gurl/common/status"
 	"github.com/blackmann/gurl/ui/addressbar"
 	"github.com/blackmann/gurl/ui/statusbar"
 	"github.com/blackmann/gurl/ui/viewport"
@@ -54,16 +53,7 @@ func (m model) Init() tea.Cmd {
 	return m.addressBar.Init()
 }
 
-func (m *model) resizeViewport(netHeight int, netWidth int) {
-	statusBarHeight := lipgloss.Height(m.statusBar.View())
-	addressBarHeight := lipgloss.Height(m.addressBar.View())
-
-	m.viewport.SetHeight(netHeight - (statusBarHeight + addressBarHeight))
-	m.viewport.Width = netWidth
-	m.statusBar, _ = m.statusBar.Update(statusbar.Width(netWidth))
-}
-
-func (m model) submitRequest(address request.Address) tea.Cmd {
+func (m model) submitRequest(address common.Address) tea.Cmd {
 	return func() tea.Msg {
 		res, err := http.Get(address.Url)
 
@@ -77,9 +67,7 @@ func (m model) submitRequest(address request.Address) tea.Cmd {
 			log.Panicln("Error occured while reading response body", err)
 		}
 
-		return appcmd.Response{
-			Body: string(body),
-		}
+		return common.Response{Body: body, ContentType: "application/json"}
 	}
 }
 
@@ -108,6 +96,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmd := getFreeTextCommand(m.command)
 				m.command = ""
 				m.commandMode = false
+
+				m.statusBar, _ = m.statusBar.Update(statusbar.CommandMsg(""))
 
 				return m, cmd
 			}
@@ -139,8 +129,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		// TODO: Rewrite
-		m.resizeViewport(msg.Height, msg.Width)
+		statusBarHeight := lipgloss.Height(m.statusBar.View())
+		addressBarHeight := lipgloss.Height(m.addressBar.View())
+
+		viewportHeight := msg.Height - (statusBarHeight + addressBarHeight)
+
+		m.viewport, _ = m.viewport.Update(tea.WindowSizeMsg{Height: viewportHeight, Width: msg.Width})
+
 		return m, nil
 
 	case appcmd.FreeText:
@@ -153,7 +148,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			var cmds []tea.Cmd
 			var cmd tea.Cmd
 
-			m.statusBar, cmd = m.statusBar.Update(statusbar.StatusMsg(status.PROCESSING))
+			m.statusBar, cmd = m.statusBar.Update(statusbar.StatusMsg(common.PROCESSING))
 			cmds = append(cmds, cmd)
 
 			// TODO: Use .Update
@@ -164,13 +159,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Batch(cmds...)
 		}
 
-	case appcmd.Response:
-		// TODO: Use .Update
-		m.viewport.SetResponse(msg.Body)
+	case common.Response:
+		var cmds []tea.Cmd
+		var cmd tea.Cmd
+
+		m.viewport, cmd = m.viewport.Update(m.viewport.SetResponse(msg))
+		cmds = append(cmds, cmd)
+
 		m.viewport.SetEnabled(true)
 
-		m.statusBar, _ = m.statusBar.Update(statusbar.StatusMsg(status.IDLE))
-		return m, nil
+		m.statusBar, _ = m.statusBar.Update(statusbar.StatusMsg(common.IDLE))
+
+		return m, tea.Batch(cmds...)
 	}
 
 	var cmds []tea.Cmd

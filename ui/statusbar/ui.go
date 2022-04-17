@@ -2,7 +2,7 @@ package statusbar
 
 import (
 	"fmt"
-	"github.com/blackmann/gurl/common/status"
+	"github.com/blackmann/gurl/common"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -22,14 +22,14 @@ type commandInput string
 type widthUpdate int
 
 // A message sent with a value to set as the status' value
-type statusUpdate status.Status
+type statusUpdate common.Status
 
 type Model struct {
 	spinner  spinner.Model
 	spinning bool
 
 	width        int
-	status       status.Status
+	status       common.Status
 	commandEntry string
 }
 
@@ -47,11 +47,11 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return model, nil
 
 	case statusUpdate:
-		model.status = status.Status(msg)
+		model.status = common.Status(msg)
 		//return model, nil
 	}
 
-	if model.status == status.PROCESSING {
+	if model.status == common.PROCESSING {
 		if !model.spinning {
 			model.spinning = true
 			return model, model.spinner.Tick
@@ -71,7 +71,7 @@ func (model Model) View() string {
 	var view string
 
 	switch model.status {
-	case status.PROCESSING:
+	case common.PROCESSING:
 		view = fmt.Sprintf("%s Processing", model.spinner.View())
 	default:
 		view = barStyle.Render(idleStatusStyle.Render("Idle"))

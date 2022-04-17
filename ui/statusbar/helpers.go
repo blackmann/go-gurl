@@ -1,7 +1,7 @@
 package statusbar
 
 import (
-	"github.com/blackmann/gurl/common/status"
+	"github.com/blackmann/gurl/common"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -9,7 +9,7 @@ func CommandMsg(command string) tea.Msg {
 	return commandInput(command)
 }
 
-func StatusMsg(status status.Status) tea.Msg {
+func StatusMsg(status common.Status) tea.Msg {
 	return statusUpdate(status)
 }
 

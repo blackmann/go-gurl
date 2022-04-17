@@ -1,4 +1,4 @@
-package request
+package common
 
 type Address struct {
 	Url    string

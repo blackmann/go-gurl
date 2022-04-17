@@ -6,10 +6,6 @@ type FreeText string
 
 type Trigger int
 
-type Response struct {
-	Body string
-}
-
 var (
 	NewRequest Trigger = 1
 )

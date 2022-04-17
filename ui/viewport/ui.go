@@ -1,12 +1,10 @@
 package viewport
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
+	"github.com/blackmann/gurl/common"
 	"github.com/blackmann/gurl/common/appcmd"
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -17,7 +15,6 @@ type keymap struct {
 }
 
 type Model struct {
-	viewport     viewport.Model
 	activeTab    int
 	keybinds     keymap
 	tabs         []string
@@ -26,6 +23,11 @@ type Model struct {
 
 	height int
 	Width  int
+
+	// tabs
+	responseModel
+	requestBodyModel
+	headersModel
 }
 
 func NewViewport() Model {
@@ -41,41 +43,12 @@ func NewViewport() Model {
 	}
 }
 
-func (model *Model) SetResponse(response string) {
-	model.responseBody = response
+func (model *Model) SetResponse(response common.Response) tea.Msg {
+	return response
 }
 
 func (model *Model) SetEnabled(enabled bool) {
 	model.enabled = enabled
-}
-
-func (model *Model) SetHeight(height int) {
-	model.height = height
-	model.viewport.Height = height - 4
-}
-
-func (model Model) getContent() string {
-	content := ""
-
-	switch model.activeTab {
-	case 2:
-		var pretty bytes.Buffer
-		if err := json.Indent(&pretty, []byte(model.responseBody), "", "  "); err == nil {
-			content = pretty.String()
-		} else {
-			content = model.responseBody
-		}
-
-		content = lipgloss.NewStyle().Width(model.Width-2).
-			Margin(0, 1, 0, 1).
-			Render(content)
-
-		if !model.enabled {
-			content = disabledContent.Render(content)
-		}
-	}
-
-	return content
 }
 
 func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
@@ -95,11 +68,6 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				newTab = model.activeTab - 1
 			}
 			model.activeTab = newTab
-
-		default:
-			model.viewport, cmd = model.viewport.Update(msg)
-
-			return model, cmd
 		}
 
 	case appcmd.FreeText:
@@ -113,12 +81,32 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case ":e":
 			model.activeTab = 2
 		}
+
+		return model, nil
+
+	case tea.WindowSizeMsg:
+		renderHeight := msg.Height - 3
+		resizeMsg := tea.WindowSizeMsg{Height: renderHeight, Width: msg.Width}
+
+		model.responseModel, _ = model.responseModel.Update(resizeMsg)
+		model.requestBodyModel, _ = model.requestBodyModel.Update(resizeMsg)
+		model.headersModel, _ = model.headersModel.Update(resizeMsg)
+
+		return model, nil
 	}
 
-	content := model.getContent()
-	model.viewport.SetContent(content)
+	var cmds []tea.Cmd
 
-	return model, nil
+	model.responseModel, cmd = model.responseModel.Update(msg)
+	cmds = append(cmds, cmd)
+
+	model.requestBodyModel, cmd = model.requestBodyModel.Update(msg)
+	cmds = append(cmds, cmd)
+
+	model.headersModel, cmd = model.headersModel.Update(msg)
+	cmds = append(cmds, cmd)
+
+	return model, tea.Batch(cmds...)
 }
 
 func (model Model) View() string {
@@ -136,5 +124,16 @@ func (model Model) View() string {
 
 	tabsRow := tabGroupStyle.Render(lipgloss.JoinHorizontal(lipgloss.Left, styledTabs...))
 
-	return viewportStyle.Render(fmt.Sprintf("%s\n%s", tabsRow, model.viewport.View()))
+	content := ""
+
+	switch model.activeTab {
+	case 0:
+		content = model.headersModel.View()
+	case 1:
+		content = model.requestBodyModel.View()
+	case 2:
+		content = model.responseModel.View()
+	}
+
+	return viewportStyle.Render(fmt.Sprintf("%s\n%s", tabsRow, content))
 }
