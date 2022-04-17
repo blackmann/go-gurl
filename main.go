@@ -37,6 +37,7 @@ func getDefaultKeyBinds() keymap {
 type model struct {
 	// Config
 	keybinds keymap
+	height   int
 
 	// Views
 	addressBar addressbar.Model
@@ -47,6 +48,7 @@ type model struct {
 	activeRegion int
 	commandMode  bool
 	command      string
+	enabled      bool
 }
 
 func (m model) Init() tea.Cmd {
@@ -58,16 +60,16 @@ func (m model) submitRequest(address common.Address) tea.Cmd {
 		res, err := http.Get(address.Url)
 
 		if err != nil {
-			log.Panicln("Error occurred", err)
+			log.Println("Error occurred", err)
 			return nil
 		}
 		body, err := io.ReadAll(res.Body)
 
 		if err != nil {
-			log.Panicln("Error occured while reading response body", err)
+			log.Println("Error occurred while reading response body", err)
 		}
 
-		return common.Response{Body: body, ContentType: "application/json"}
+		return common.Response{Body: body, Headers: res.Header}
 	}
 }
 
@@ -75,12 +77,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if m.commandMode {
+			gainFocus := func() tea.Msg {
+				return appcmd.GainFocus
+			}
+
 			if key.Matches(msg, m.keybinds.toggleCommandMode) {
 				m.commandMode = false
 				m.command = ""
 				m.statusBar, _ = m.statusBar.Update(statusbar.CommandMsg(""))
 
-				return m, nil
+				return m, gainFocus
 			}
 
 			switch msg.Type {
@@ -99,7 +105,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				m.statusBar, _ = m.statusBar.Update(statusbar.CommandMsg(""))
 
-				return m, cmd
+				return m, tea.Batch(cmd, gainFocus)
 			}
 
 			var prefix string
@@ -122,13 +128,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keybinds.toggleCommandMode):
 			m.commandMode = true
 			m.statusBar, _ = m.statusBar.Update(statusbar.CommandMsg(">"))
-			return m, nil
+
+			return m, func() tea.Msg {
+				return appcmd.LostFocus
+			}
 
 		case key.Matches(msg, m.keybinds.quit):
 			return m, tea.Quit
 		}
 
 	case tea.WindowSizeMsg:
+		m.height = msg.Height
 		statusBarHeight := lipgloss.Height(m.statusBar.View())
 		addressBarHeight := lipgloss.Height(m.addressBar.View())
 
@@ -151,10 +161,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.statusBar, cmd = m.statusBar.Update(statusbar.StatusMsg(common.PROCESSING))
 			cmds = append(cmds, cmd)
 
-			// TODO: Use .Update
-			m.viewport.SetEnabled(false)
-
 			cmds = append(cmds, m.submitRequest(m.addressBar.GetAddress()))
+
+			m.enabled = false
 
 			return m, tea.Batch(cmds...)
 		}
@@ -166,9 +175,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.viewport, cmd = m.viewport.Update(m.viewport.SetResponse(msg))
 		cmds = append(cmds, cmd)
 
-		m.viewport.SetEnabled(true)
-
 		m.statusBar, _ = m.statusBar.Update(statusbar.StatusMsg(common.IDLE))
+		m.enabled = true
 
 		return m, tea.Batch(cmds...)
 	}
@@ -211,6 +219,8 @@ func newAppModel() model {
 		keybinds:   getDefaultKeyBinds(),
 		statusBar:  statusbar.NewStatusBar(),
 		viewport:   viewport.NewViewport(),
+
+		enabled: true,
 	}
 }
 

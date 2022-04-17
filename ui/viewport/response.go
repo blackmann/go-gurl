@@ -7,11 +7,19 @@ import (
 )
 
 type responseModel struct {
-	content  string
-	viewport viewport.Model
+	initialized bool
+	viewport    viewport.Model
 }
 
 func (model responseModel) Update(msg tea.Msg) (responseModel, tea.Cmd) {
+	if !model.initialized {
+		// Doing this to maintain a sturdy viewport.
+		// Removing this causes the viewport to jiggle because
+		// there's no content
+		model.viewport.SetContent("")
+		model.initialized = true
+	}
+
 	switch msg := msg.(type) {
 	case common.Response:
 		model.viewport.SetContent(msg.Render())

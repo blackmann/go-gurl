@@ -28,18 +28,20 @@ type Model struct {
 	responseModel
 	requestBodyModel
 	headersModel
+	responseHeadersModel
 }
 
 func NewViewport() Model {
-	tabs := []string{"Headers (:q)", "Request Body (:w)", "Response (:e)"}
+	tabs := []string{"Headers (:q)", "Request Body (:w)", "Response (:e)", "Response Headers (:r)"}
 	keybinds := keymap{
 		nextTab:     key.NewBinding(key.WithKeys("shift+f"), key.WithHelp("⌥→", "Next tab")),
 		previousTab: key.NewBinding(key.WithKeys("shift+b"), key.WithHelp("⌥←", "Prev tab")),
 	}
 
 	return Model{
-		tabs:     tabs,
-		keybinds: keybinds,
+		tabs:                 tabs,
+		keybinds:             keybinds,
+		responseHeadersModel: NewResponseHeadersModel(),
 	}
 }
 
@@ -80,6 +82,9 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		case ":e":
 			model.activeTab = 2
+
+		case ":r":
+			model.activeTab = 3
 		}
 
 		return model, nil
@@ -91,6 +96,7 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		model.responseModel, _ = model.responseModel.Update(resizeMsg)
 		model.requestBodyModel, _ = model.requestBodyModel.Update(resizeMsg)
 		model.headersModel, _ = model.headersModel.Update(resizeMsg)
+		model.responseHeadersModel, _ = model.responseHeadersModel.Update(resizeMsg)
 
 		return model, nil
 	}
@@ -104,6 +110,9 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	cmds = append(cmds, cmd)
 
 	model.headersModel, cmd = model.headersModel.Update(msg)
+	cmds = append(cmds, cmd)
+
+	model.responseHeadersModel, cmd = model.responseHeadersModel.Update(msg)
 	cmds = append(cmds, cmd)
 
 	return model, tea.Batch(cmds...)
@@ -133,6 +142,8 @@ func (model Model) View() string {
 		content = model.requestBodyModel.View()
 	case 2:
 		content = model.responseModel.View()
+	case 3:
+		content = model.responseHeadersModel.View()
 	}
 
 	return viewportStyle.Render(fmt.Sprintf("%s\n%s", tabsRow, content))
