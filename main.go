@@ -2,8 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/blackmann/gurl/common"
-	"github.com/blackmann/gurl/common/appcmd"
+	"github.com/blackmann/gurl/lib"
 	"github.com/blackmann/gurl/ui/addressbar"
 	"github.com/blackmann/gurl/ui/statusbar"
 	"github.com/blackmann/gurl/ui/viewport"
@@ -55,21 +54,28 @@ func (m model) Init() tea.Cmd {
 	return m.addressBar.Init()
 }
 
-func (m model) submitRequest(address common.Address) tea.Cmd {
+func (m model) submitRequest(address lib.Address, headers http.Header, body io.Reader) tea.Cmd {
 	return func() tea.Msg {
-		res, err := http.Get(address.Url)
+		client := &http.Client{}
+		req, err := http.NewRequest(address.Method, address.Url, body)
+		req.Header = headers
+
+		res, err := client.Do(req)
+		defer res.Body.Close()
 
 		if err != nil {
 			log.Println("Error occurred", err)
 			return nil
 		}
+
 		body, err := io.ReadAll(res.Body)
 
 		if err != nil {
 			log.Println("Error occurred while reading response body", err)
+			return nil
 		}
 
-		return common.Response{Body: body, Headers: res.Header}
+		return lib.Response{Body: body, Headers: res.Header}
 	}
 }
 
@@ -78,13 +84,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		if m.commandMode {
 			gainFocus := func() tea.Msg {
-				return appcmd.GainFocus
+				return lib.GainFocus
 			}
 
 			if key.Matches(msg, m.keybinds.toggleCommandMode) {
 				m.commandMode = false
 				m.command = ""
-				m.statusBar, _ = m.statusBar.Update(statusbar.CommandMsg(""))
+				m.statusBar, _ = m.statusBar.Update(statusbar.FreeTextCommandCmd(""))
 
 				return m, gainFocus
 			}
@@ -103,7 +109,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.command = ""
 				m.commandMode = false
 
-				m.statusBar, _ = m.statusBar.Update(statusbar.CommandMsg(""))
+				m.statusBar, _ = m.statusBar.Update(statusbar.FreeTextCommandCmd(""))
 
 				return m, tea.Batch(cmd, gainFocus)
 			}
@@ -115,7 +121,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				prefix = ""
 			}
 
-			m.statusBar, _ = m.statusBar.Update(statusbar.CommandMsg(fmt.Sprintf("%s%s", prefix, m.command)))
+			m.statusBar, _ = m.statusBar.Update(statusbar.FreeTextCommandCmd(fmt.Sprintf("%s%s", prefix, m.command)))
 
 			return m, nil
 		}
@@ -127,10 +133,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case key.Matches(msg, m.keybinds.toggleCommandMode):
 			m.commandMode = true
-			m.statusBar, _ = m.statusBar.Update(statusbar.CommandMsg(">"))
+			m.statusBar, _ = m.statusBar.Update(statusbar.FreeTextCommandCmd(">"))
 
 			return m, func() tea.Msg {
-				return appcmd.LostFocus
+				return lib.LostFocus
 			}
 
 		case key.Matches(msg, m.keybinds.quit):
@@ -148,34 +154,44 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, nil
 
-	case appcmd.FreeText:
+	case lib.FreeText:
 		m.viewport, _ = m.viewport.Update(msg)
 		return m, nil
 
-	case appcmd.Trigger:
+	case lib.Trigger:
 		switch msg {
-		case appcmd.NewRequest:
+		case lib.NewRequest:
 			var cmds []tea.Cmd
 			var cmd tea.Cmd
 
-			m.statusBar, cmd = m.statusBar.Update(statusbar.StatusMsg(common.PROCESSING))
+			m.statusBar, cmd = m.statusBar.Update(statusbar.StatusCmd(lib.PROCESSING))
 			cmds = append(cmds, cmd)
 
-			cmds = append(cmds, m.submitRequest(m.addressBar.GetAddress()))
+			headers := m.viewport.GetHeaders()
+			body := m.viewport.GetBody()
+
+			address, err := m.addressBar.GetAddress()
+
+			if err != nil {
+				// TODO: Return error message (msg)
+				log.Panicln("Error parsing address")
+			}
+
+			cmds = append(cmds, m.submitRequest(address, headers, body))
 
 			m.enabled = false
 
 			return m, tea.Batch(cmds...)
 		}
 
-	case common.Response:
+	case lib.Response:
 		var cmds []tea.Cmd
 		var cmd tea.Cmd
 
 		m.viewport, cmd = m.viewport.Update(m.viewport.SetResponse(msg))
 		cmds = append(cmds, cmd)
 
-		m.statusBar, _ = m.statusBar.Update(statusbar.StatusMsg(common.IDLE))
+		m.statusBar, _ = m.statusBar.Update(statusbar.StatusCmd(lib.IDLE))
 		m.enabled = true
 
 		return m, tea.Batch(cmds...)
@@ -226,7 +242,7 @@ func newAppModel() model {
 
 func getFreeTextCommand(cmd string) tea.Cmd {
 	return func() tea.Msg {
-		return appcmd.FreeText(cmd)
+		return lib.FreeText(cmd)
 	}
 }
 

@@ -1,8 +1,7 @@
 package viewport
 
 import (
-	"github.com/blackmann/gurl/common"
-	"github.com/blackmann/gurl/common/appcmd"
+	"github.com/blackmann/gurl/lib"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"strings"
@@ -29,7 +28,7 @@ type responseHeadersModel struct {
 	headersList list.Model
 }
 
-func NewResponseHeadersModel() responseHeadersModel {
+func newResponseHeadersModel() responseHeadersModel {
 	listDefinition := list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0)
 	listDefinition.SetShowTitle(false)
 	//listDefinition.DisableQuitKeybindings()
@@ -46,7 +45,7 @@ func (model responseHeadersModel) Update(msg tea.Msg) (responseHeadersModel, tea
 	case tea.WindowSizeMsg:
 		model.headersList.SetHeight(msg.Height)
 
-	case common.Response:
+	case lib.Response:
 		var items []list.Item
 		for key, values := range msg.Headers {
 			items = append(items, headerItem{key: key, value: strings.Join(values, ",")})
@@ -56,12 +55,12 @@ func (model responseHeadersModel) Update(msg tea.Msg) (responseHeadersModel, tea
 
 		return model, cmd
 
-	case appcmd.Trigger:
+	case lib.Trigger:
 		switch msg {
-		case appcmd.LostFocus:
+		case lib.LostFocus:
 			model.headersList.SetFilteringEnabled(false)
 			//model.headersList.SetShowFilter(false)
-		case appcmd.GainFocus:
+		case lib.GainFocus:
 			model.headersList.SetFilteringEnabled(true)
 			model.headersList.SetShowFilter(true)
 		}

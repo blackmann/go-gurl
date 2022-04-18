@@ -1,7 +1,7 @@
 package viewport
 
 import (
-	"github.com/blackmann/gurl/common"
+	"github.com/blackmann/gurl/lib"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -21,7 +21,7 @@ func (model responseModel) Update(msg tea.Msg) (responseModel, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
-	case common.Response:
+	case lib.Response:
 		model.viewport.SetContent(msg.Render())
 
 	case tea.WindowSizeMsg:

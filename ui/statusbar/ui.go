@@ -2,34 +2,21 @@ package statusbar
 
 import (
 	"fmt"
-	"github.com/blackmann/gurl/common"
+	"github.com/blackmann/gurl/lib"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
-// A command in this case is an entry from the keyboard
-// that is mapped to an action. For example, ":q" to quit, etc.
-// The action is not necessarily performed by statusbar. We're
-// only using this type as a state update message type.
-//
-//  statusbar.Update(commandInput(":q"))
-//
-// This is a tea.Msg type
-type commandInput string
-
-// A message sent with a value to be set as the statusbar's width
-type widthUpdate int
-
 // A message sent with a value to set as the status' value
-type statusUpdate common.Status
+type statusUpdate lib.Status
 
 type Model struct {
 	spinner  spinner.Model
 	spinning bool
 
 	width        int
-	status       common.Status
+	status       lib.Status
 	commandEntry string
 }
 
@@ -47,11 +34,11 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return model, nil
 
 	case statusUpdate:
-		model.status = common.Status(msg)
+		model.status = lib.Status(msg)
 		//return model, nil
 	}
 
-	if model.status == common.PROCESSING {
+	if model.status == lib.PROCESSING {
 		if !model.spinning {
 			model.spinning = true
 			return model, model.spinner.Tick
@@ -71,7 +58,7 @@ func (model Model) View() string {
 	var view string
 
 	switch model.status {
-	case common.PROCESSING:
+	case lib.PROCESSING:
 		view = fmt.Sprintf("%s Processing", model.spinner.View())
 	default:
 		view = barStyle.Render(idleStatusStyle.Render("Idle"))

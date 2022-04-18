@@ -2,11 +2,12 @@ package viewport
 
 import (
 	"fmt"
-	"github.com/blackmann/gurl/common"
-	"github.com/blackmann/gurl/common/appcmd"
+	"github.com/blackmann/gurl/lib"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"io"
+	"net/http"
 )
 
 type keymap struct {
@@ -41,11 +42,11 @@ func NewViewport() Model {
 	return Model{
 		tabs:                 tabs,
 		keybinds:             keybinds,
-		responseHeadersModel: NewResponseHeadersModel(),
+		responseHeadersModel: newResponseHeadersModel(),
 	}
 }
 
-func (model *Model) SetResponse(response common.Response) tea.Msg {
+func (model *Model) SetResponse(response lib.Response) tea.Msg {
 	return response
 }
 
@@ -72,7 +73,7 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			model.activeTab = newTab
 		}
 
-	case appcmd.FreeText:
+	case lib.FreeText:
 		switch msg {
 		case ":q":
 			model.activeTab = 0
@@ -147,4 +148,12 @@ func (model Model) View() string {
 	}
 
 	return viewportStyle.Render(fmt.Sprintf("%s\n%s", tabsRow, content))
+}
+
+func (model *Model) GetHeaders() http.Header {
+	return nil
+}
+
+func (model *Model) GetBody() io.Reader {
+	return nil
 }

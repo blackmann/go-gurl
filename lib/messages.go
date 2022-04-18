@@ -1,6 +1,4 @@
-package appcmd
-
-import tea "github.com/charmbracelet/bubbletea"
+package lib
 
 type FreeText string
 
@@ -11,7 +9,3 @@ var (
 	LostFocus  Trigger = 2
 	GainFocus  Trigger = 3
 )
-
-func SubmitNewRequest() tea.Msg {
-	return NewRequest
-}

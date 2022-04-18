@@ -1,8 +1,8 @@
 package addressbar
 
 import (
-	"github.com/blackmann/gurl/common"
-	"github.com/blackmann/gurl/common/appcmd"
+	"errors"
+	"github.com/blackmann/gurl/lib"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"strings"
@@ -34,7 +34,7 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
-			return model, appcmd.SubmitNewRequest
+			return model, lib.SubmitNewRequest
 		}
 	}
 
@@ -48,6 +48,23 @@ func (model Model) View() string {
 	return model.input.View()
 }
 
-func (model Model) GetAddress() common.Address {
-	return common.Address{Method: "GET", Url: strings.Trim(model.input.Value(), " ")}
+func (model Model) GetAddress() (lib.Address, error) {
+	trimmedAddr := strings.Trim(model.input.Value(), " ")
+
+	if len(trimmedAddr) == 0 {
+		return lib.Address{}, errors.New("")
+	}
+
+	// Expecting at least one part and most 2
+	// When two, the first part is the method and the latter is the endpoint
+	parts := strings.Split(trimmedAddr, " ")
+
+	method := "GET"
+	endpoint := parts[len(parts)-1]
+
+	if len(parts) > 1 {
+		method = parts[0]
+	}
+
+	return lib.Address{Method: strings.ToUpper(method), Url: endpoint}, nil
 }
