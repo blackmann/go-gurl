@@ -12,6 +12,10 @@ type Model struct {
 	input textinput.Model
 }
 
+func (model Model) Init() tea.Cmd {
+	return nil
+}
+
 func NewAddressBar() Model {
 	t := textinput.New()
 	t.Placeholder = "/GET @adeton/shops"
@@ -19,14 +23,7 @@ func NewAddressBar() Model {
 
 	t.Focus()
 
-	return Model{
-		input: t,
-	}
-}
-
-func (model Model) Init() tea.Cmd {
-	textinput.Blink()
-	return textinput.Blink
+	return Model{input: t}
 }
 
 func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {

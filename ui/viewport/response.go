@@ -11,13 +11,19 @@ type responseModel struct {
 	viewport    viewport.Model
 }
 
+func (model *responseModel) Init() tea.Cmd {
+	// Doing this to maintain a sturdy viewport.
+	// Removing this causes the viewport to jiggle because
+	// there's no content
+	model.viewport.SetContent("")
+	model.initialized = true
+
+	return nil
+}
+
 func (model responseModel) Update(msg tea.Msg) (responseModel, tea.Cmd) {
 	if !model.initialized {
-		// Doing this to maintain a sturdy viewport.
-		// Removing this causes the viewport to jiggle because
-		// there's no content
-		model.viewport.SetContent("")
-		model.initialized = true
+		model.Init()
 	}
 
 	switch msg := msg.(type) {

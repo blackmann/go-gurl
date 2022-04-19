@@ -7,23 +7,6 @@ import (
 	"strings"
 )
 
-type headerItem struct {
-	key   string
-	value string
-}
-
-func (h headerItem) FilterValue() string {
-	return h.key
-}
-
-func (h headerItem) Title() string {
-	return h.key
-}
-
-func (h headerItem) Description() string {
-	return h.value
-}
-
 type responseHeadersModel struct {
 	headersList list.Model
 }
@@ -31,9 +14,6 @@ type responseHeadersModel struct {
 func newResponseHeadersModel() responseHeadersModel {
 	listDefinition := list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0)
 	listDefinition.SetShowTitle(false)
-	//listDefinition.DisableQuitKeybindings()
-
-	listDefinition.KeyMap.ClearFilter.SetKeys("shift+esc")
 
 	return responseHeadersModel{
 		headersList: listDefinition,

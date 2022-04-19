@@ -51,7 +51,7 @@ type model struct {
 }
 
 func (m model) Init() tea.Cmd {
-	return m.addressBar.Init()
+	return nil
 }
 
 func (m model) submitRequest(address lib.Address, headers http.Header, body io.Reader) tea.Cmd {
@@ -80,6 +80,7 @@ func (m model) submitRequest(address lib.Address, headers http.Header, body io.R
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// TODO: Quick successive `esc` input should yield a reset state
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if m.commandMode {

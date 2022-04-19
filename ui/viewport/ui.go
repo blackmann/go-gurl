@@ -23,7 +23,9 @@ type Model struct {
 	enabled      bool
 
 	height int
-	Width  int
+
+	// state
+	headers http.Header
 
 	// tabs
 	responseModel
@@ -43,6 +45,7 @@ func NewViewport() Model {
 		tabs:                 tabs,
 		keybinds:             keybinds,
 		responseHeadersModel: newResponseHeadersModel(),
+		headers:              http.Header{},
 	}
 }
 
@@ -100,6 +103,15 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		model.responseHeadersModel, _ = model.responseHeadersModel.Update(resizeMsg)
 
 		return model, nil
+
+	case headerItem:
+		model.headers.Set(msg.key, msg.value)
+
+		cmd := func() tea.Msg {
+			return requestHeaders(model.headers)
+		}
+
+		return model, cmd
 	}
 
 	var cmds []tea.Cmd
