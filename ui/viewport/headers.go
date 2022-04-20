@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"sort"
 	"strings"
 )
 
@@ -35,6 +36,11 @@ func (model *headersModel) Init() tea.Cmd {
 
 	listDefinition := list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0)
 	listDefinition.SetShowTitle(false)
+	listDefinition.SetFilteringEnabled(false)
+	listDefinition.DisableQuitKeybindings()
+
+	listDefinition.KeyMap.ShowFullHelp.Unbind()
+
 	model.list = listDefinition
 
 	model.verticalPosition = INPUT
@@ -57,6 +63,11 @@ func (model headersModel) Update(msg tea.Msg) (headersModel, tea.Cmd) {
 		for key, values := range msg {
 			items = append(items, headerItem{key: key, value: strings.Join(values, ",")})
 		}
+
+		// Sort based on entry
+		sort.Slice(items, func(i, j int) bool {
+			return j < i
+		})
 
 		cmd := model.list.SetItems(items)
 
@@ -84,13 +95,15 @@ func (model headersModel) Update(msg tea.Msg) (headersModel, tea.Cmd) {
 					return headerItem{key: key, value: value}
 				}
 
+				model.headerInput.SetValue("")
+
 				return model, cmd
 			}
 
 		case tea.KeyUp:
 			if model.list.Cursor() == 0 {
 				model.verticalPosition = INPUT
-				return model, nil
+				return model, textinput.Blink
 			}
 
 		case tea.KeyDown:
@@ -115,6 +128,11 @@ func (model headersModel) Update(msg tea.Msg) (headersModel, tea.Cmd) {
 
 func (model headersModel) View() string {
 	inputStyle := lipgloss.NewStyle().Margin(0, 2, 1, 2)
+
+	if model.verticalPosition == LIST {
+		inputStyle = inputStyle.Foreground(lipgloss.Color("#999"))
+	}
+
 	input := inputStyle.Render(model.headerInput.View())
 	return fmt.Sprintf("%s\n%s", input, model.list.View())
 }

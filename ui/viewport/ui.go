@@ -6,7 +6,6 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"io"
 	"net/http"
 )
 
@@ -53,10 +52,6 @@ func (model *Model) SetResponse(response lib.Response) tea.Msg {
 	return response
 }
 
-func (model *Model) SetEnabled(enabled bool) {
-	model.enabled = enabled
-}
-
 func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
@@ -74,6 +69,21 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				newTab = model.activeTab - 1
 			}
 			model.activeTab = newTab
+
+		default:
+			var cmd tea.Cmd
+			switch model.activeTab {
+			case 0:
+				model.headersModel, cmd = model.headersModel.Update(msg)
+			case 1:
+				model.requestBodyModel, cmd = model.requestBodyModel.Update(msg)
+			case 2:
+				model.responseModel, cmd = model.responseModel.Update(msg)
+			case 3:
+				model.responseHeadersModel, cmd = model.responseHeadersModel.Update(msg)
+			}
+
+			return model, cmd
 		}
 
 	case lib.FreeText:
@@ -112,6 +122,22 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 
 		return model, cmd
+
+	case lib.Trigger:
+		switch msg {
+		case lib.TabLeft:
+			if model.activeTab > 0 {
+				model.activeTab -= 1
+			}
+			return model, nil
+
+		case lib.TabRight:
+			if model.activeTab < 3 {
+				model.activeTab += 1
+			}
+
+			return model, nil
+		}
 	}
 
 	var cmds []tea.Cmd
@@ -162,10 +188,10 @@ func (model Model) View() string {
 	return viewportStyle.Render(fmt.Sprintf("%s\n%s", tabsRow, content))
 }
 
-func (model *Model) GetHeaders() http.Header {
-	return nil
+func (model Model) GetHeaders() http.Header {
+	return model.headers
 }
 
-func (model *Model) GetBody() io.Reader {
-	return nil
+func (model *Model) GetBody() string {
+	return model.requestBodyModel.Input()
 }

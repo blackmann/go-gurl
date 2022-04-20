@@ -7,12 +7,14 @@ import (
 	"github.com/blackmann/gurl/ui/statusbar"
 	"github.com/blackmann/gurl/ui/viewport"
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type keymap struct {
@@ -51,7 +53,7 @@ type model struct {
 }
 
 func (m model) Init() tea.Cmd {
-	return nil
+	return m.addressBar.Init()
 }
 
 func (m model) submitRequest(address lib.Address, headers http.Header, body io.Reader) tea.Cmd {
@@ -105,6 +107,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.command = m.command[:len(m.command)-1]
 				}
 
+			case tea.KeyRight:
+				if len(m.command) == 0 {
+					return m, lib.NavigateRight
+				}
+
+			case tea.KeyLeft:
+				if len(m.command) == 0 {
+					return m, lib.NavigateLeft
+				}
+
 			case tea.KeyEnter:
 				cmd := getFreeTextCommand(m.command)
 				m.command = ""
@@ -130,7 +142,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, m.keybinds.nextTab):
 			m.activeRegion = (m.activeRegion + 1) % 2 // only two views
-			return m, nil
+
+			// So that inputs receive "focus"
+			return m, textinput.Blink
 
 		case key.Matches(msg, m.keybinds.toggleCommandMode):
 			m.commandMode = true
@@ -178,11 +192,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				log.Panicln("Error parsing address")
 			}
 
-			cmds = append(cmds, m.submitRequest(address, headers, body))
+			cmds = append(cmds, m.submitRequest(address, headers, strings.NewReader(body)))
 
 			m.enabled = false
 
 			return m, tea.Batch(cmds...)
+
+		default:
+			m.viewport, _ = m.viewport.Update(msg)
+			return m, nil
 		}
 
 	case lib.Response:

@@ -13,12 +13,12 @@ type Model struct {
 }
 
 func (model Model) Init() tea.Cmd {
-	return nil
+	return textinput.Blink
 }
 
 func NewAddressBar() Model {
 	t := textinput.New()
-	t.Placeholder = "/GET @adeton/shops"
+	t.Placeholder = "GET @adeton/shops"
 	t.Prompt = "¬ "
 
 	t.Focus()

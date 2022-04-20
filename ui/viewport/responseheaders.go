@@ -14,6 +14,10 @@ type responseHeadersModel struct {
 func newResponseHeadersModel() responseHeadersModel {
 	listDefinition := list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0)
 	listDefinition.SetShowTitle(false)
+	listDefinition.SetFilteringEnabled(false)
+	listDefinition.DisableQuitKeybindings()
+
+	listDefinition.KeyMap.ShowFullHelp.Unbind()
 
 	return responseHeadersModel{
 		headersList: listDefinition,
@@ -34,17 +38,6 @@ func (model responseHeadersModel) Update(msg tea.Msg) (responseHeadersModel, tea
 		cmd := model.headersList.SetItems(items)
 
 		return model, cmd
-
-	case lib.Trigger:
-		switch msg {
-		case lib.LostFocus:
-			model.headersList.SetFilteringEnabled(false)
-			//model.headersList.SetShowFilter(false)
-		case lib.GainFocus:
-			model.headersList.SetFilteringEnabled(true)
-			model.headersList.SetShowFilter(true)
-		}
-
 	}
 
 	var cmd tea.Cmd
