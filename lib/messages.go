@@ -2,6 +2,16 @@ package lib
 
 type FreeText string
 
+type ShortMessage string // SMS
+
+type Mode string
+
+var (
+	Url    Mode = "url"
+	Cmd    Mode = "cmd"
+	Detail Mode = "xfg"
+)
+
 type Trigger int
 
 var (

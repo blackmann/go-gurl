@@ -13,6 +13,7 @@ type responseModel struct {
 
 	hasResponse bool
 	height      int
+	width       int
 }
 
 func (model *responseModel) Init() tea.Cmd {
@@ -20,6 +21,8 @@ func (model *responseModel) Init() tea.Cmd {
 	// Removing this causes the viewport to jiggle because
 	// there's no content
 	model.viewport.SetContent("")
+	model.viewport.MouseWheelEnabled = true
+
 	model.initialized = true
 
 	return nil
@@ -32,12 +35,19 @@ func (model responseModel) Update(msg tea.Msg) (responseModel, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case lib.Response:
-		model.viewport.SetContent(msg.Render())
+		// wrap content
+		content := lipgloss.NewStyle().Width(model.viewport.Width).Render(msg.Render())
+		model.viewport.SetContent(content)
+		model.viewport.YOffset = 0
+
 		model.hasResponse = true
 
 	case tea.WindowSizeMsg:
 		model.viewport.Height = msg.Height
+		model.viewport.Width = msg.Width - 4 // Left/right padding
+
 		model.height = msg.Height
+		model.width = msg.Width
 	}
 
 	var cmd tea.Cmd
@@ -53,5 +63,5 @@ func (model responseModel) View() string {
 		return style.Render("No response data")
 	}
 
-	return model.viewport.View()
+	return lipgloss.NewStyle().Padding(0, 2, 0, 2).Render(model.viewport.View())
 }

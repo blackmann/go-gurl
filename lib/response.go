@@ -10,6 +10,8 @@ import (
 type Response struct {
 	Body    []byte
 	Headers http.Header
+	Status  int
+	Time    int64
 }
 
 func (response Response) Render() string {

@@ -18,6 +18,8 @@ type Model struct {
 	width        int
 	status       lib.Status
 	commandEntry string
+	message      lib.ShortMessage
+	mode         lib.Mode
 }
 
 func NewStatusBar() Model {
@@ -34,8 +36,21 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return model, nil
 
 	case statusUpdate:
+		// Allow to flow through so ticking can begin for
+		// status == PROCESSING
 		model.status = lib.Status(msg)
-		//return model, nil
+
+	case tea.WindowSizeMsg:
+		model.width = msg.Width
+		return model, nil
+
+	case lib.ShortMessage:
+		model.message = msg
+		return model, nil
+
+	case lib.Mode:
+		model.mode = msg
+		return model, nil
 	}
 
 	if model.status == lib.PROCESSING {
@@ -55,18 +70,41 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (model Model) View() string {
-	var view string
+	var status string
 
 	switch model.status {
 	case lib.PROCESSING:
-		view = fmt.Sprintf("%s Processing", model.spinner.View())
+		status = fmt.Sprintf("%s Processing", model.spinner.View())
+	case lib.IDLE:
+		status = neutralStatusStyle.Render("Idle")
+
+	case lib.ERROR:
+		status = errorStatusStyle.Render("Error")
+
 	default:
-		view = barStyle.Render(idleStatusStyle.Render("Idle"))
+		value := model.status.GetValue()
+
+		if value < 300 {
+			status = okStatusStyle.Render(fmt.Sprintf("%d", value))
+		} else if value < 400 {
+			status = okStatusStyle.Render(fmt.Sprintf("%d", value))
+		} else {
+			status = errorStatusStyle.Render(fmt.Sprintf("%d", value))
+		}
+
 	}
 
-	if len(model.commandEntry) > 0 {
-		view = fmt.Sprintf("%s %s", view, model.commandEntry)
-	}
+	mutedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#999"))
 
-	return lipgloss.NewStyle().Margin(1).Render(view)
+	half := lipgloss.NewStyle().Width(model.width/2 - 2) // Left/right padding removed
+
+	rightHalf := half.Copy().Align(lipgloss.Right).
+		Render(fmt.Sprintf("%s :%s", model.commandEntry, mutedStyle.Render(string(model.mode))))
+
+	leftHalf := half.Copy().Align(lipgloss.Left).
+		Render(fmt.Sprintf("%s %s", status, mutedStyle.Render(string(model.message))))
+
+	render := fmt.Sprintf("%s %s", leftHalf, rightHalf)
+
+	return barStyle.Copy().Width(model.width).Render(render)
 }

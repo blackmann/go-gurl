@@ -34,7 +34,7 @@ type Model struct {
 }
 
 func NewViewport() Model {
-	tabs := []string{"Headers (:q)", "Request Body (:w)", "Response (:e)", "Response Headers (:r)"}
+	tabs := []string{"Headers", "Request Body", "Response", "Response Headers"}
 	keybinds := keymap{
 		nextTab:     key.NewBinding(key.WithKeys("shift+f"), key.WithHelp("⌥→", "Next tab")),
 		previousTab: key.NewBinding(key.WithKeys("shift+b"), key.WithHelp("⌥←", "Prev tab")),
@@ -85,23 +85,6 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 			return model, cmd
 		}
-
-	case lib.FreeText:
-		switch msg {
-		case ":q":
-			model.activeTab = 0
-
-		case ":w":
-			model.activeTab = 1
-
-		case ":e":
-			model.activeTab = 2
-
-		case ":r":
-			model.activeTab = 3
-		}
-
-		return model, nil
 
 	case tea.WindowSizeMsg:
 		renderHeight := msg.Height - 3
@@ -160,13 +143,18 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (model Model) View() string {
 	viewportStyle := lipgloss.NewStyle().Height(model.height)
 
-	styledTabs := make([]string, len(model.tabs))
+	tabsCount := len(model.tabs)
+	styledTabs := make([]string, tabsCount*2-1)
 
 	for i, tab := range model.tabs {
 		if i != model.activeTab {
 			styledTabs = append(styledTabs, inactiveTabStyle.Render(tab))
 		} else {
 			styledTabs = append(styledTabs, activeTabStyle.Render(tab))
+		}
+
+		if i != len(model.tabs)-1 {
+			styledTabs = append(styledTabs, inactiveTabStyle.Render(" | "))
 		}
 	}
 
@@ -185,7 +173,14 @@ func (model Model) View() string {
 		content = model.responseHeadersModel.View()
 	}
 
-	return viewportStyle.Render(fmt.Sprintf("%s\n%s", tabsRow, content))
+	render := viewportStyle.Render(fmt.Sprintf("%s\n%s", tabsRow, content))
+
+	// TODO: Implement
+	//if !model.enabled {
+	//	return disabledContent.Render(render)
+	//}
+
+	return render
 }
 
 func (model Model) GetHeaders() http.Header {

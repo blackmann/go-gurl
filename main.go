@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 type keymap struct {
@@ -58,6 +59,8 @@ func (m model) Init() tea.Cmd {
 
 func (m model) submitRequest(address lib.Address, headers http.Header, body io.Reader) tea.Cmd {
 	return func() tea.Msg {
+		start := time.Now()
+
 		client := &http.Client{}
 		req, err := http.NewRequest(address.Method, address.Url, body)
 		req.Header = headers
@@ -77,8 +80,18 @@ func (m model) submitRequest(address lib.Address, headers http.Header, body io.R
 			return nil
 		}
 
-		return lib.Response{Body: body, Headers: res.Header}
+		timeTaken := time.Since(start).Milliseconds()
+
+		return lib.Response{Body: body, Headers: res.Header, Status: res.StatusCode, Time: timeTaken}
 	}
+}
+
+func (m model) getMode() lib.Mode {
+	if m.activeRegion == 0 {
+		return lib.Url
+	}
+
+	return lib.Detail
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -93,7 +106,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if key.Matches(msg, m.keybinds.toggleCommandMode) {
 				m.commandMode = false
 				m.command = ""
-				m.statusBar, _ = m.statusBar.Update(statusbar.FreeTextCommandCmd(""))
+				m.statusBar, _ = m.statusBar.Update(statusbar.UpdateFreetextCommand(""))
+				m.statusBar, _ = m.statusBar.Update(m.getMode())
 
 				return m, gainFocus
 			}
@@ -122,7 +136,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.command = ""
 				m.commandMode = false
 
-				m.statusBar, _ = m.statusBar.Update(statusbar.FreeTextCommandCmd(""))
+				m.statusBar, _ = m.statusBar.Update(statusbar.UpdateFreetextCommand(""))
 
 				return m, tea.Batch(cmd, gainFocus)
 			}
@@ -134,7 +148,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				prefix = ""
 			}
 
-			m.statusBar, _ = m.statusBar.Update(statusbar.FreeTextCommandCmd(fmt.Sprintf("%s%s", prefix, m.command)))
+			m.statusBar, _ = m.statusBar.Update(statusbar.UpdateFreetextCommand(fmt.Sprintf("%s%s", prefix, m.command)))
 
 			return m, nil
 		}
@@ -142,13 +156,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, m.keybinds.nextTab):
 			m.activeRegion = (m.activeRegion + 1) % 2 // only two views
+			m.statusBar, _ = m.statusBar.Update(m.getMode())
 
 			// So that inputs receive "focus"
 			return m, textinput.Blink
 
 		case key.Matches(msg, m.keybinds.toggleCommandMode):
 			m.commandMode = true
-			m.statusBar, _ = m.statusBar.Update(statusbar.FreeTextCommandCmd(">"))
+			m.statusBar, _ = m.statusBar.Update(statusbar.UpdateFreetextCommand(">"))
+			m.statusBar, _ = m.statusBar.Update(lib.Cmd)
 
 			return m, func() tea.Msg {
 				return lib.LostFocus
@@ -166,6 +182,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		viewportHeight := msg.Height - (statusBarHeight + addressBarHeight)
 
 		m.viewport, _ = m.viewport.Update(tea.WindowSizeMsg{Height: viewportHeight, Width: msg.Width})
+		m.statusBar, _ = m.statusBar.Update(tea.WindowSizeMsg{Width: msg.Width})
 
 		return m, nil
 
@@ -179,7 +196,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			var cmds []tea.Cmd
 			var cmd tea.Cmd
 
-			m.statusBar, cmd = m.statusBar.Update(statusbar.StatusCmd(lib.PROCESSING))
+			// Status bar returns tick cmd when processing
+			m.statusBar, _ = m.statusBar.Update(lib.ShortMessage(""))
+			m.statusBar, cmd = m.statusBar.Update(statusbar.UpdateStatus(lib.PROCESSING))
 			cmds = append(cmds, cmd)
 
 			headers := m.viewport.GetHeaders()
@@ -210,7 +229,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.viewport, cmd = m.viewport.Update(m.viewport.SetResponse(msg))
 		cmds = append(cmds, cmd)
 
-		m.statusBar, _ = m.statusBar.Update(statusbar.StatusCmd(lib.IDLE))
+		m.statusBar, _ = m.statusBar.Update(statusbar.UpdateStatus(lib.IDLE))
+		m.statusBar, _ = m.statusBar.Update(statusbar.UpdateStatus(lib.Status(msg.Status)))
+		m.statusBar, _ = m.statusBar.Update(lib.ShortMessage(fmt.Sprintf("%dms %dB", msg.Time, len(msg.Body))))
+
 		m.enabled = true
 
 		return m, tea.Batch(cmds...)
@@ -278,7 +300,8 @@ func main() {
 	log.SetOutput(f)
 
 	// Initialize and start app
-	app := tea.NewProgram(newAppModel(), tea.WithAltScreen())
+	// TODO/DECIDE: Alternate between cell motion
+	app := tea.NewProgram(newAppModel(), tea.WithAltScreen() /*tea.WithMouseCellMotion()*/)
 
 	if err := app.Start(); err != nil {
 		log.Panicln("Error occurred", err)

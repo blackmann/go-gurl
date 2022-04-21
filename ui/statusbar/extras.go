@@ -15,10 +15,10 @@ import (
 // This is a tea.Msg type
 type commandInput string
 
-func FreeTextCommandCmd(command string) tea.Msg {
+func UpdateFreetextCommand(command string) tea.Msg {
 	return commandInput(command)
 }
 
-func StatusCmd(status lib.Status) tea.Msg {
+func UpdateStatus(status lib.Status) tea.Msg {
 	return statusUpdate(status)
 }
