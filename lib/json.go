@@ -87,7 +87,7 @@ func parseString(str []byte, cursor int) (string, int, error) {
 		}
 	}
 
-	return s, cursor + 1, nil
+	return s, cursor, nil
 }
 
 func parseBool(str []byte, cursor int) (bool, int, error) {
@@ -113,46 +113,50 @@ func parseNull(str []byte, cursor int) (interface{}, int, error) {
 }
 
 func parseArray(str []byte, cursor int) ([]interface{}, int, error) {
-
 	if str[cursor] == '[' {
 		cursor++
 		var res []interface{}
 		for str[cursor] != ']' {
-			if node, err := ParseJson(str, cursor); err == nil {
-				res = append(res, node)
+			if str[cursor] == ',' || str[cursor] == ' ' {
 				cursor++
+				continue
+			}
+
+			if node, _cursor, err := ParseJson(str, cursor); err == nil {
+				res = append(res, node)
+				cursor = _cursor
 			} else {
 				return nil, cursor, err
 			}
 		}
 
-		cursor++
+		cursor++ // close the "]"
 		return res, cursor, nil
 	}
 
 	return nil, cursor, errors.New("not an array")
 }
 
-func ParseJson(str []byte, cursor int) (JsonNode, error) {
-	if number, _, err := parseNumber(str, cursor); err == nil {
-		return JsonNode{Value: []interface{}{number}, Type: Number}, nil
+func ParseJson(str []byte, cursor int) (JsonNode, int, error) {
+	if number, _cursor, err := parseNumber(str, cursor); err == nil {
+		return JsonNode{Value: []interface{}{number}, Type: Number}, _cursor, nil
 	}
 
-	if str, _, err := parseString(str, cursor); err == nil {
-		return JsonNode{Value: []interface{}{str}, Type: String}, nil
+	if str, _cursor, err := parseString(str, cursor); err == nil {
+		return JsonNode{Value: []interface{}{str}, Type: String}, _cursor, nil
 	}
 
-	if boolean, _, err := parseBool(str, cursor); err == nil {
-		return JsonNode{Value: []interface{}{boolean}, Type: Boolean}, nil
+	if boolean, _cursor, err := parseBool(str, cursor); err == nil {
+		return JsonNode{Value: []interface{}{boolean}, Type: Boolean}, _cursor, nil
 	}
 
-	if _, _, err := parseNull(str, cursor); err == nil {
-		return JsonNode{Type: Null}, nil
+	if _, _cursor, err := parseNull(str, cursor); err == nil {
+		return JsonNode{Type: Null, Value: []interface{}{nil}}, _cursor, nil
 	}
 
-	if arr, _, err := parseArray(str, cursor); err == nil {
-		return JsonNode{Type: Array, Value: arr}, nil
+	if arr, _cursor, err := parseArray(str, cursor); err == nil {
+		return JsonNode{Type: Array, Value: arr}, _cursor, nil
 	}
 
-	return JsonNode{}, errors.New("invalid json")
+	return JsonNode{}, cursor, errors.New("invalid json")
 }
