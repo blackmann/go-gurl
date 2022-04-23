@@ -14,6 +14,8 @@ var (
 	String  NodeType = 2
 	Boolean NodeType = 3
 	Null    NodeType = 4
+	Array   NodeType = 5
+	Object  NodeType = 6
 )
 
 type JsonNode struct {
@@ -75,7 +77,7 @@ func parseString(str []byte, cursor int) (string, int, error) {
 			if char != '\\' {
 				s += string(char)
 			} else {
-				// an escape character, so we go ahead and consume the next
+				// an escape character, so we go ahead and consume the next \"..."
 				cursor++
 				s += fmt.Sprintf("%c%c", char, str[cursor])
 			}
@@ -85,19 +87,72 @@ func parseString(str []byte, cursor int) (string, int, error) {
 		}
 	}
 
-	return s, cursor, nil
+	return s, cursor + 1, nil
 }
 
-func ParseJson(str []byte) JsonNode {
-	var value []interface{}
-
-	if number, _, err := parseNumber(str, 0); err == nil {
-		value = append(value, number)
+func parseBool(str []byte, cursor int) (bool, int, error) {
+	if str[cursor] == 't' {
+		// true, advance cursor
+		cursor += 4
+		return true, cursor, nil
 	}
 
-	if str, _, err := parseString(str, 0); err == nil {
-		value = append(value, str)
+	if str[cursor] == 'f' {
+		cursor += 5
+		return false, cursor, nil
 	}
 
-	return JsonNode{Value: value}
+	return false, cursor, errors.New("not a bool")
+}
+
+func parseNull(str []byte, cursor int) (interface{}, int, error) {
+	if str[cursor] == 'n' {
+		return nil, cursor + 4, nil
+	}
+	return nil, cursor, errors.New("not a null")
+}
+
+func parseArray(str []byte, cursor int) ([]interface{}, int, error) {
+
+	if str[cursor] == '[' {
+		cursor++
+		var res []interface{}
+		for str[cursor] != ']' {
+			if node, err := ParseJson(str, cursor); err == nil {
+				res = append(res, node)
+				cursor++
+			} else {
+				return nil, cursor, err
+			}
+		}
+
+		cursor++
+		return res, cursor, nil
+	}
+
+	return nil, cursor, errors.New("not an array")
+}
+
+func ParseJson(str []byte, cursor int) (JsonNode, error) {
+	if number, _, err := parseNumber(str, cursor); err == nil {
+		return JsonNode{Value: []interface{}{number}, Type: Number}, nil
+	}
+
+	if str, _, err := parseString(str, cursor); err == nil {
+		return JsonNode{Value: []interface{}{str}, Type: String}, nil
+	}
+
+	if boolean, _, err := parseBool(str, cursor); err == nil {
+		return JsonNode{Value: []interface{}{boolean}, Type: Boolean}, nil
+	}
+
+	if _, _, err := parseNull(str, cursor); err == nil {
+		return JsonNode{Type: Null}, nil
+	}
+
+	if arr, _, err := parseArray(str, cursor); err == nil {
+		return JsonNode{Type: Array, Value: arr}, nil
+	}
+
+	return JsonNode{}, errors.New("invalid json")
 }
