@@ -7,43 +7,43 @@ import (
 )
 
 func TestHighlightJson_Number_Int(t *testing.T) {
-	p := ColoredPrettier()
+	p := NoColorPrettier()
 	v, _ := p.HighlightJson(`20`)
 	assert.Equal(t, "20", v)
 }
 
 func TestHighlightJson_Number_Float(t *testing.T) {
-	p := ColoredPrettier()
+	p := NoColorPrettier()
 	v, _ := p.HighlightJson(`20.50`)
 	assert.Equal(t, "20.50", v)
 }
 
 func TestHighlightJson_String(t *testing.T) {
-	p := ColoredPrettier()
+	p := NoColorPrettier()
 	v, _ := p.HighlightJson(`"hello"`)
 	assert.Equal(t, `"hello"`, v)
 }
 
 func TestHighlightJson_Bool_True(t *testing.T) {
-	p := ColoredPrettier()
+	p := NoColorPrettier()
 	v, _ := p.HighlightJson(`true`)
 	assert.Equal(t, "true", v)
 }
 
 func TestHighlightJson_Bool_False(t *testing.T) {
-	p := ColoredPrettier()
+	p := NoColorPrettier()
 	v, _ := p.HighlightJson(`false`)
 	assert.Equal(t, "false", v)
 }
 
 func TestHighlightJson_Null(t *testing.T) {
-	p := ColoredPrettier()
+	p := NoColorPrettier()
 	v, _ := p.HighlightJson(`null`)
 	assert.Equal(t, "null", v)
 }
 
 func TestHighlightJson_Array(t *testing.T) {
-	p := ColoredPrettier()
+	p := NoColorPrettier()
 	testCases := map[string]string{
 		// Single
 		`[1]`: strings.Join([]string{
@@ -100,7 +100,7 @@ func TestHighlightJson_Object(t *testing.T) {
 		`}`,
 	}, "\n")
 
-	p := ColoredPrettier()
+	p := NoColorPrettier()
 
 	v, _ := p.HighlightJson(input)
 	assert.Equal(t, expectation, v)

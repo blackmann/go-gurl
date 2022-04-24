@@ -19,7 +19,7 @@ type palette struct {
 }
 
 type Prettier struct {
-	p palette
+	palette
 }
 
 func ColoredPrettier() Prettier {
@@ -32,7 +32,11 @@ func ColoredPrettier() Prettier {
 		key:    lipgloss.NewStyle().Foreground(lipgloss.Color(ANSIRed)),
 	}
 
-	return Prettier{p: colorPalette}
+	return Prettier{palette: colorPalette}
+}
+
+func NoColorPrettier() Prettier {
+	return Prettier{}
 }
 
 func getIndent(depth int) string {
@@ -82,23 +86,24 @@ func (p Prettier) highlight(decoder *json.Decoder, depth int) (string, error) {
 }
 
 func (p Prettier) highlightNumber(token json.Token) string {
-	return fmt.Sprintf("%v", token)
+	return p.palette.number.Render(fmt.Sprintf("%v", token))
 }
 
 func (p Prettier) highlightString(token json.Token) string {
-	return fmt.Sprintf(`"%v"`, token)
+	return p.palette.string.Render(fmt.Sprintf(`"%v"`, token))
 }
 
 func (p Prettier) highlightBool(token json.Token) string {
-	return fmt.Sprintf("%v", token)
+	return p.palette.bool.Render(fmt.Sprintf("%v", token))
 }
 
 func (p Prettier) highlightNull() string {
-	return "null"
+	return p.palette.null.Render("null")
 }
 
 func (p Prettier) highlightArray(decoder *json.Decoder, depth int) string {
-	s := "["
+	s := p.palette.delim.Render("[")
+
 	isEmpty := true
 	innerIndent := getIndent(depth + 1)
 
@@ -117,23 +122,24 @@ func (p Prettier) highlightArray(decoder *json.Decoder, depth int) string {
 
 	_, _ = decoder.Token() // Clean the trailing: ]
 
+	closingDelim := p.palette.delim.Render("]")
 	if isEmpty {
-		return s + "]"
+		return s + closingDelim
 	}
 
 	closingIndent := getIndent(depth)
-	return fmt.Sprintf("%s%s]", s, closingIndent)
+	return fmt.Sprintf("%s%s%s", s, closingIndent, closingDelim)
 }
 
 func (p Prettier) highlightObject(decoder *json.Decoder, depth int) string {
-	s := "{"
+	s := p.palette.delim.Render("{")
 	isEmpty := true
 	innerIndent := getIndent(depth + 1)
 
 	for decoder.More() {
 		isEmpty = false
 		token, _ := decoder.Token()
-		key := fmt.Sprintf(`"%v"`, token)
+		key := p.palette.key.Render(fmt.Sprintf(`"%v"`, token))
 		value, _ := p.highlight(decoder, depth+1)
 
 		if len(s) > 1 {
@@ -145,10 +151,11 @@ func (p Prettier) highlightObject(decoder *json.Decoder, depth int) string {
 
 	_, _ = decoder.Token() // Clean the trailing: }
 
+	closingDelim := p.palette.delim.Render("}")
 	if isEmpty {
-		return s + "}"
+		return s + closingDelim
 	}
 
 	closingIndent := getIndent(depth)
-	return fmt.Sprintf("%s%s}", s, closingIndent)
+	return fmt.Sprintf("%s%s%s", s, closingIndent, closingDelim)
 }
