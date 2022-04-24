@@ -1,8 +1,6 @@
 package lib
 
 import (
-	"bytes"
-	"encoding/json"
 	"net/http"
 	"strings"
 )
@@ -20,9 +18,9 @@ func (response Response) Render() string {
 	contentType := response.Headers.Get("content-type")
 
 	if strings.HasPrefix(contentType, "application/json") {
-		var pretty bytes.Buffer
-		if err := json.Indent(&pretty, response.Body, "", "  "); err == nil {
-			content = pretty.String()
+		p := ColoredPrettier()
+		if pretty, err := p.HighlightJson(string(response.Body)); err == nil {
+			content = pretty
 		} else {
 			content = string(response.Body)
 		}
