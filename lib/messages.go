@@ -1,6 +1,6 @@
 package lib
 
-type FreeText string
+type FreeTextCommand string
 
 type ShortMessage string // SMS
 

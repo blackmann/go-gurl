@@ -10,17 +10,18 @@ var (
 			Padding(0, 1, 0, 1).
 			MarginTop(1)
 
-	neutralStatusStyle = lipgloss.NewStyle().Background(lipgloss.Color("#fff")).
-				Foreground(lipgloss.Color("#000")).
+	neutralStatusStyle = lipgloss.NewStyle().
+				Background(lipgloss.Color(lib.ANSIWhite)).
+				Foreground(lipgloss.Color(lib.ANSIBlack)).
 				Padding(0, 1, 0, 1)
 
-	errorStatusStyle = lipgloss.NewStyle().Background(lipgloss.Color("#fff")).
-				Background(lib.ColorDanger).
+	errorStatusStyle = lipgloss.NewStyle().
+				Background(lipgloss.Color(lib.ANSIRed)).
 				Foreground(lipgloss.Color("#fff")).
 				Padding(0, 1, 0, 1)
 
-	okStatusStyle = lipgloss.NewStyle().Background(lipgloss.Color("#fff")).
-			Background(lib.ColorOk).
-			Foreground(lipgloss.Color("#000")).
+	okStatusStyle = lipgloss.NewStyle().
+			Background(lipgloss.Color(lib.ANSIGreen)).
+			Foreground(lipgloss.Color(lib.ANSIBlack)).
 			Padding(0, 1, 0, 1)
 )

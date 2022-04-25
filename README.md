@@ -10,5 +10,6 @@ TUI `curl` as a personal replacement of Postman. Postman just feels very overblo
 - [ ] Syntax highlighting
 - [ ] Bookmarking
 - [ ] History
+- [ ] Commands
 - [ ] Persistence/Config file
 - [ ] All tests

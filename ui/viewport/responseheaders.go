@@ -27,12 +27,15 @@ func newResponseHeadersModel() responseHeadersModel {
 func (model responseHeadersModel) Update(msg tea.Msg) (responseHeadersModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		model.headersList.SetHeight(msg.Height)
+		model.headersList.SetSize(msg.Width-2, msg.Height)
 
 	case lib.Response:
 		var items []list.Item
 		for key, values := range msg.Headers {
-			items = append(items, headerItem{key: key, value: strings.Join(values, ",")})
+			items = append(items, headerItem{
+				key:   key,
+				value: strings.Join(values, ","),
+			})
 		}
 
 		cmd := model.headersList.SetItems(items)

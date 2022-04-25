@@ -81,7 +81,6 @@ func (p Prettier) highlight(decoder *json.Decoder, depth int) (string, error) {
 			return p.highlightBool(t), nil
 		}
 	}
-
 	return "", errors.New("invalid json")
 }
 
