@@ -10,6 +10,7 @@ type Response struct {
 	Headers http.Header
 	Status  int
 	Time    int64
+	Request
 }
 
 func (response Response) Render() string {

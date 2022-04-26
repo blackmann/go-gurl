@@ -65,3 +65,7 @@ func (model Model) GetAddress() (lib.Address, error) {
 
 	return lib.Address{Method: strings.ToUpper(method), Url: endpoint}, nil
 }
+
+func (model Model) GetEntry() string {
+	return model.input.Value()
+}

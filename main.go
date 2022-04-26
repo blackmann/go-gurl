@@ -20,7 +20,13 @@ func main() {
 
 	// Initialize and start app
 	// TODO/DECIDE: Alternate between cell motion
-	app := tea.NewProgram(newAppModel(), tea.WithAltScreen() /*tea.WithMouseCellMotion()*/)
+	model, err := newAppModel()
+
+	if err != nil {
+		log.Panicln("Error occurred while creating model", err)
+	}
+
+	app := tea.NewProgram(model, tea.WithAltScreen() /*tea.WithMouseCellMotion()*/)
 
 	if err := app.Start(); err != nil {
 		log.Panicln("Error occurred", err)

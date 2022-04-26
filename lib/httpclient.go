@@ -8,7 +8,7 @@ import (
 )
 
 type Client interface {
-	MakeRequest(address Address, header http.Header, reader io.Reader) (Response, error)
+	MakeRequest(request Request) (Response, error)
 }
 
 type DefaultClient struct {
@@ -19,11 +19,11 @@ func NewHttpClient() DefaultClient {
 	return DefaultClient{client: &http.Client{}}
 }
 
-func (c DefaultClient) MakeRequest(address Address, headers http.Header, body io.Reader) (Response, error) {
+func (c DefaultClient) MakeRequest(request Request) (Response, error) {
 	start := time.Now()
 
-	req, err := http.NewRequest(address.Method, address.Url, body)
-	req.Header = headers
+	req, err := http.NewRequest(request.Address.Method, request.Address.Url, request.Body)
+	req.Header = request.Headers
 
 	res, err := c.client.Do(req)
 	defer res.Body.Close()
@@ -42,5 +42,11 @@ func (c DefaultClient) MakeRequest(address Address, headers http.Header, body io
 
 	timeTaken := time.Since(start).Milliseconds()
 
-	return Response{Body: responseBody, Headers: res.Header, Status: res.StatusCode, Time: timeTaken}, nil
+	return Response{
+		Body:    responseBody,
+		Headers: res.Header,
+		Status:  res.StatusCode,
+		Time:    timeTaken,
+		Request: request,
+	}, nil
 }
