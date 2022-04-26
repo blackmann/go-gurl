@@ -14,18 +14,14 @@ type Response struct {
 }
 
 func (response Response) Render() string {
-	content := ""
-
 	contentType := response.Headers.Get("content-type")
 
 	if strings.HasPrefix(contentType, "application/json") {
 		p := ColoredPrettier()
 		if pretty, err := p.HighlightJson(string(response.Body)); err == nil {
-			content = pretty
-		} else {
-			content = string(response.Body)
+			return pretty
 		}
 	}
 
-	return content
+	return string(response.Body)
 }

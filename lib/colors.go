@@ -25,4 +25,6 @@ var (
 	ANSIBrightMagenta = "13"
 	ANSIBrightCyan    = "14"
 	ANSIBrightWhite   = "15"
+	ANSILightRed      = "203"
+	ANSILightGray     = "248"
 )

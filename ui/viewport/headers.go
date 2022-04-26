@@ -61,7 +61,7 @@ func (model headersModel) Update(msg tea.Msg) (headersModel, tea.Cmd) {
 	case requestHeaders:
 		var items []list.Item
 		for key, values := range msg {
-			items = append(items, headerItem{key: key, value: strings.Join(values, ",")})
+			items = append(items, lib.ListItem{Key: key, Value: strings.Join(values, ",")})
 		}
 
 		// Sort based on entry
@@ -92,7 +92,7 @@ func (model headersModel) Update(msg tea.Msg) (headersModel, tea.Cmd) {
 				key, value := strings.Trim(parts[0], " "), strings.Trim(parts[1], " ")
 
 				cmd := func() tea.Msg {
-					return headerItem{key: key, value: value}
+					return lib.ListItem{Key: key, Value: value}
 				}
 
 				model.headerInput.SetValue("")

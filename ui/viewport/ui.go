@@ -97,8 +97,8 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		return model, nil
 
-	case headerItem:
-		model.headers.Set(msg.key, msg.value)
+	case lib.ListItem:
+		model.headers.Set(msg.Key, msg.Value)
 
 		cmd := func() tea.Msg {
 			return requestHeaders(model.headers)

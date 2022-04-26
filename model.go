@@ -234,6 +234,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, textinput.Blink
 
 		case key.Matches(msg, m.keybinds.ToggleCommandMode):
+			if m.middleView != VIEWPORT {
+				m.middleView = VIEWPORT
+
+				return m, nil
+			}
+
 			m.commandMode = true
 			m.statusBar, _ = m.statusBar.Update(statusbar.UpdateFreetextCommand(">"))
 			m.statusBar, _ = m.statusBar.Update(lib.Cmd)
@@ -265,22 +271,37 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var cmds []tea.Cmd
 
-	// Forward the unhandled command to the active region
+	// Forward the unhandled/trickled command to the active region
 	switch m.activeRegion {
 	case 0:
-
 		var cmd tea.Cmd
 		m.addressBar, cmd = m.addressBar.Update(msg)
 
-		addressEntry := m.addressBar.GetEntry()
-		if strings.HasPrefix(addressEntry, "$") {
-			m.middleView = HISTORY
-			m.historyList, _ = m.historyList.Update(history.Filter(addressEntry[1:]))
-		} else if strings.HasPrefix(addressEntry, "@") {
-			m.middleView = BOOKMARKS
-			m.bookmarksList, _ = m.bookmarksList.Update(bookmarks.Filter(addressEntry[1:]))
-		} else {
-			m.middleView = VIEWPORT
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			if m.middleView != VIEWPORT {
+				if msg.Type == tea.KeyUp || msg.Type == tea.KeyDown {
+					switch m.middleView {
+					case HISTORY:
+						m.historyList, _ = m.historyList.Update(msg)
+					case BOOKMARKS:
+						m.bookmarksList, _ = m.bookmarksList.Update(msg)
+					}
+				}
+			}
+		default:
+			{
+				addressEntry := m.addressBar.GetEntry()
+				if strings.HasPrefix(addressEntry, "$") {
+					m.middleView = HISTORY
+					m.historyList, _ = m.historyList.Update(history.Filter(addressEntry[1:]))
+				} else if strings.HasPrefix(addressEntry, "@") {
+					m.middleView = BOOKMARKS
+					m.bookmarksList, _ = m.bookmarksList.Update(bookmarks.Filter(addressEntry[1:]))
+				} else {
+					m.middleView = VIEWPORT
+				}
+			}
 		}
 
 		cmds = append(cmds, cmd)
@@ -330,7 +351,8 @@ func newAppModel() (model, error) {
 		keybinds:    lib.DefaultKeyBinds(),
 		statusBar:   statusbar.NewStatusBar(),
 		viewport:    viewport.NewViewport(),
-		persistence: db,
+		persistence: &db,
+		historyList: history.NewHistory(&db),
 
 		enabled: true,
 	}, nil

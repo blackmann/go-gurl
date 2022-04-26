@@ -7,7 +7,7 @@ import (
 )
 
 type History struct {
-	ID     uint
+	ID     uint `gorm:"primaryKey"`
 	Date   time.Time
 	Method string
 	Url    string
@@ -16,13 +16,23 @@ type History struct {
 	Annotation string
 }
 
+type PersistenceObserver interface {
+	OnChange(persistence Persistence)
+}
+
 type Persistence interface {
 	SaveHistory(history History)
 	GetHistory() []History
+	AddListener(observer PersistenceObserver)
 }
 
 type DbPersistence struct {
-	db *gorm.DB
+	db        *gorm.DB
+	observers []PersistenceObserver
+}
+
+func (d *DbPersistence) AddListener(observer PersistenceObserver) {
+	d.observers = append(d.observers, observer)
 }
 
 func (d DbPersistence) SaveHistory(history History) {
@@ -34,6 +44,12 @@ func (d DbPersistence) GetHistory() []History {
 	d.db.Order("date desc").Find(&res)
 
 	return res
+}
+
+func (d DbPersistence) OnChange() {
+	for _, observer := range d.observers {
+		observer.OnChange(&d)
+	}
 }
 
 func NewDbPersistence() (DbPersistence, error) {

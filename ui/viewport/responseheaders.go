@@ -12,7 +12,7 @@ type responseHeadersModel struct {
 }
 
 func newResponseHeadersModel() responseHeadersModel {
-	listDefinition := list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0)
+	listDefinition := list.New([]list.Item{}, lib.GetDefaultListDelegate(), 0, 0)
 	listDefinition.SetShowTitle(false)
 	listDefinition.SetFilteringEnabled(false)
 	listDefinition.DisableQuitKeybindings()
@@ -32,9 +32,9 @@ func (model responseHeadersModel) Update(msg tea.Msg) (responseHeadersModel, tea
 	case lib.Response:
 		var items []list.Item
 		for key, values := range msg.Headers {
-			items = append(items, headerItem{
-				key:   key,
-				value: strings.Join(values, ","),
+			items = append(items, lib.ListItem{
+				Key:   key,
+				Value: strings.Join(values, ","),
 			})
 		}
 
