@@ -112,6 +112,7 @@ func (m model) handleResponse(msg lib.Response) (tea.Model, tea.Cmd) {
 		Url:    msg.Request.Address.Url,
 		Method: msg.Request.Address.Method,
 		Date:   time.Now(),
+		Status: msg.Status,
 	})
 
 	return m, tea.Batch(cmds...)
@@ -289,18 +290,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 			}
-		default:
-			{
-				addressEntry := m.addressBar.GetEntry()
-				if strings.HasPrefix(addressEntry, "$") {
-					m.middleView = HISTORY
-					m.historyList, _ = m.historyList.Update(history.Filter(addressEntry[1:]))
-				} else if strings.HasPrefix(addressEntry, "@") {
-					m.middleView = BOOKMARKS
-					m.bookmarksList, _ = m.bookmarksList.Update(bookmarks.Filter(addressEntry[1:]))
-				} else {
-					m.middleView = VIEWPORT
-				}
+
+			addressEntry := m.addressBar.GetEntry()
+			if strings.HasPrefix(addressEntry, "$") {
+				m.middleView = HISTORY
+				m.historyList, _ = m.historyList.Update(history.Filter(addressEntry[1:]))
+			} else if strings.HasPrefix(addressEntry, "@") {
+				m.middleView = BOOKMARKS
+				m.bookmarksList, _ = m.bookmarksList.Update(bookmarks.Filter(addressEntry[1:]))
+			} else {
+				m.middleView = VIEWPORT
 			}
 		}
 

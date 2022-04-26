@@ -18,6 +18,8 @@ type Model struct {
 	history []lib.History
 
 	initialized bool
+	filter      Filter
+	width       int
 }
 
 func (m *Model) OnChange(persistence lib.Persistence) {
@@ -56,19 +58,32 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.list.SetHeight(msg.Height - 2)
+		m.list.SetSize(msg.Width-2, msg.Height-2)
+		m.width = msg.Width
+
+		return m, nil
 
 	case Filter:
 		var historyItems []list.Item
 		for _, item := range m.history {
+			left := lipgloss.NewStyle().
+				Width(m.width/2 - 4).
+				Render(fmt.Sprintf("%d", item.Status))
+
+			right := lipgloss.NewStyle().
+				Width(m.width/2 - 4).
+				Align(lipgloss.Right).
+				Render(fmt.Sprintf("%s $%d", humanize.Time(item.Date), item.ID))
+
 			historyItems = append(historyItems,
 				lib.ListItem{
 					Key:   fmt.Sprintf("%s %s", item.Method, item.Url),
-					Value: fmt.Sprintf("%s $%d", humanize.Time(item.Date), item.ID),
+					Value: fmt.Sprintf("%s%s", left, right),
 				})
 		}
 
 		m.list.SetItems(historyItems)
+		return m, nil
 	}
 
 	m.list, _ = m.list.Update(msg)

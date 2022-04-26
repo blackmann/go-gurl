@@ -14,6 +14,7 @@ type History struct {
 	//Headers    map[string]string
 	Body       string
 	Annotation string
+	Status     int
 }
 
 type PersistenceObserver interface {
