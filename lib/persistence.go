@@ -39,22 +39,18 @@ func (h *History) AfterFind(tx *gorm.DB) error {
 	return err
 }
 
-type PersistenceObserver interface {
-	OnChange(persistence Persistence)
-}
-
 type Persistence interface {
 	SaveHistory(history History)
 	GetHistory() []History
+	AnnotateHistory(id int64, annotation string)
 }
 
 type DbPersistence struct {
-	db        *gorm.DB
-	observers []PersistenceObserver
+	db *gorm.DB
 }
 
-func (d *DbPersistence) AddListener(observer PersistenceObserver) {
-	d.observers = append(d.observers, observer)
+func (d DbPersistence) AnnotateHistory(id int64, annotation string) {
+	d.db.Model(History{}).Where("id = ?", id).Update("annotation", annotation)
 }
 
 func (d DbPersistence) SaveHistory(history History) {

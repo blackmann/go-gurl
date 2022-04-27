@@ -14,6 +14,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dustin/go-humanize"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -55,8 +56,20 @@ type model struct {
 	middleView
 }
 
-func (m model) Init() tea.Cmd {
-	return m.addressBar.Init()
+func (m model) annotate(argsString string) (model, tea.Cmd) {
+	args := strings.Split(argsString, " ")
+	log.Println("Annotating", args)
+	id := args[0][1:] // without the $
+	annotation := args[1]
+
+	intId, _ := strconv.ParseInt(id, 10, 64)
+	m.persistence.AnnotateHistory(intId, annotation)
+
+	updateHistory := func() tea.Msg {
+		return lib.UpdateHistory
+	}
+
+	return m, updateHistory
 }
 
 func (m model) submitRequest(request lib.Request) tea.Cmd {
@@ -78,7 +91,14 @@ func (m model) getMode() lib.Mode {
 	return lib.Detail
 }
 
-func (m model) performResize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
+func (m *model) resetCommandInput() {
+	m.command = ""
+	m.commandMode = false
+
+	m.statusBar, _ = m.statusBar.Update(statusbar.UpdateFreetextCommand(""))
+}
+
+func (m model) performResize(msg tea.WindowSizeMsg) (model, tea.Cmd) {
 	m.height = msg.Height
 	statusBarHeight := lipgloss.Height(m.statusBar.View())
 	addressBarHeight := lipgloss.Height(m.addressBar.View())
@@ -109,7 +129,7 @@ func (m model) handleHistory(history lib.History) (model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) handleResponse(msg lib.Response) (tea.Model, tea.Cmd) {
+func (m model) handleResponse(msg lib.Response) (model, tea.Cmd) {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
 
@@ -140,13 +160,13 @@ func (m model) handleResponse(msg lib.Response) (tea.Model, tea.Cmd) {
 		Body:    msg.Request.Body,
 	})
 
-	newHistory := func() tea.Msg { return lib.NewHistory }
+	newHistory := func() tea.Msg { return lib.UpdateHistory }
 	cmds = append(cmds, newHistory)
 
 	return m, tea.Batch(cmds...)
 }
 
-func (m model) handleTrigger(msg lib.Trigger) (tea.Model, tea.Cmd, bool) {
+func (m model) handleTrigger(msg lib.Trigger) (model, tea.Cmd, bool) {
 	switch msg {
 	case lib.NewRequest:
 		var cmds []tea.Cmd
@@ -164,7 +184,8 @@ func (m model) handleTrigger(msg lib.Trigger) (tea.Model, tea.Cmd, bool) {
 
 		if err != nil {
 			// TODO: Return error message (msg)
-			log.Panicln("Error parsing address")
+			log.Println("Error parsing address", err)
+			return m, nil, true
 		}
 
 		cmds = append(cmds, m.submitRequest(lib.Request{
@@ -177,7 +198,7 @@ func (m model) handleTrigger(msg lib.Trigger) (tea.Model, tea.Cmd, bool) {
 
 		return m, tea.Batch(cmds...), true
 
-	case lib.NewHistory:
+	case lib.UpdateHistory:
 		m.historyList, _ = m.historyList.Update(msg)
 		return m, nil, true
 
@@ -193,11 +214,13 @@ func (m model) handeCommandInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if key.Matches(msg, m.keybinds.ToggleCommandMode) {
-		m.commandMode = false
-		m.command = ""
-		m.statusBar, _ = m.statusBar.Update(statusbar.UpdateFreetextCommand(""))
+		m.resetCommandInput()
 		m.statusBar, _ = m.statusBar.Update(m.getMode())
 		return m, gainFocus
+	}
+
+	if key.Matches(msg, m.keybinds.Quit) {
+		return m, tea.Quit
 	}
 
 	switch msg.Type {
@@ -220,11 +243,9 @@ func (m model) handeCommandInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.KeyEnter:
-		cmd := func() tea.Msg { return lib.FreeTextCommand(m.command) }
-		m.command = ""
-		m.commandMode = false
-
-		m.statusBar, _ = m.statusBar.Update(statusbar.UpdateFreetextCommand(""))
+		command := m.command
+		cmd := func() tea.Msg { return lib.FreeTextCommand(command) }
+		m.resetCommandInput()
 
 		return m, tea.Batch(cmd, gainFocus)
 	}
@@ -240,6 +261,10 @@ func (m model) handeCommandInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		UpdateFreetextCommand(fmt.Sprintf("%s%s", prefix, m.command)))
 
 	return m, nil
+}
+
+func (m model) Init() tea.Cmd {
+	return m.addressBar.Init()
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -290,7 +315,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.performResize(msg)
 
 	case lib.FreeTextCommand:
-		m.viewport, _ = m.viewport.Update(msg)
+		parts := strings.SplitN(string(msg), " ", 2)
+		for i, v := range parts {
+			parts[i] = strings.Trim(v, " ")
+		}
+
+		switch parts[0] {
+		case "/annotate":
+			return m.annotate(parts[1])
+		}
+
+		m.resetCommandInput()
+
 		return m, nil
 
 	case lib.Trigger:
@@ -411,6 +447,7 @@ func newAppModel() (model, error) {
 		persistence:  &db,
 		historyList:  history.NewHistory(&db),
 		activeRegion: URL,
+		middleView:   VIEWPORT,
 
 		enabled: true,
 	}, nil

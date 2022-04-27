@@ -54,7 +54,7 @@ func (model Model) GetAddress() (lib.Address, error) {
 	trimmedAddr := strings.Trim(model.input.Value(), " ")
 
 	if len(trimmedAddr) == 0 {
-		return lib.Address{}, errors.New("")
+		return lib.Address{}, errors.New("no address entry")
 	}
 
 	// Expecting at least one part and most 2

@@ -75,7 +75,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			right := lipgloss.NewStyle().
 				Width(m.width/2 - 4).
 				Align(lipgloss.Right).
-				Render(fmt.Sprintf("%s $%d", humanize.Time(item.Date), item.ID))
+				Render(fmt.Sprintf("%s $%d %s", humanize.Time(item.Date), item.ID, item.Annotation))
 
 			historyItems = append(historyItems,
 				lib.ListItem{
@@ -88,7 +88,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return m, nil
 
 	case lib.Trigger:
-		if msg == lib.NewHistory {
+		if msg == lib.UpdateHistory {
 			m.history = m.persistence.GetHistory()
 			m.list.Select(0)
 			return m, nil

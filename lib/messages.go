@@ -22,5 +22,5 @@ var (
 	TabLeft  Trigger = 4
 	TabRight Trigger = 5
 
-	NewHistory Trigger = 6
+	UpdateHistory Trigger = 6
 )
