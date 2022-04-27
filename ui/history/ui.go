@@ -7,6 +7,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dustin/go-humanize"
+	"gorm.io/gorm/utils"
+	"strings"
 )
 
 type Filter string
@@ -22,11 +24,6 @@ type Model struct {
 	width       int
 }
 
-func (m *Model) OnChange(persistence lib.Persistence) {
-	//TODO implement me
-	panic("implement me")
-}
-
 func (m *Model) Init() tea.Cmd {
 	delegate := lib.GetDefaultListDelegate()
 
@@ -38,11 +35,9 @@ func (m *Model) Init() tea.Cmd {
 	listDefinition.KeyMap.ShowFullHelp.Unbind()
 
 	m.list = listDefinition
-	m.initialized = true
-
-	m.persistence.AddListener(m)
 
 	m.prefetchHistory()
+	m.initialized = true
 
 	return nil
 }
@@ -65,7 +60,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	case Filter:
 		var historyItems []list.Item
+
 		for _, item := range m.history {
+			idString := utils.ToString(item.ID)
+			if !(strings.HasPrefix(idString, string(msg)) ||
+				strings.Contains(item.Annotation, string(msg))) {
+				continue
+			}
+
 			left := lipgloss.NewStyle().
 				Width(m.width/2 - 4).
 				Render(fmt.Sprintf("%d", item.Status))
@@ -84,6 +86,13 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		m.list.SetItems(historyItems)
 		return m, nil
+
+	case lib.Trigger:
+		if msg == lib.NewHistory {
+			m.history = m.persistence.GetHistory()
+			m.list.Select(0)
+			return m, nil
+		}
 	}
 
 	m.list, _ = m.list.Update(msg)

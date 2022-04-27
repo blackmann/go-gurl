@@ -26,6 +26,13 @@ var (
 	BOOKMARKS middleView = 3
 )
 
+type region int
+
+var (
+	UrlRegion      region = 0
+	ViewportRegion region = 1
+)
+
 type model struct {
 	// Config
 	client      lib.Client
@@ -40,7 +47,7 @@ type model struct {
 	bookmarksList bookmarks.Model
 
 	// State
-	activeRegion int
+	activeRegion region
 	commandMode  bool
 	command      string
 	enabled      bool
@@ -115,7 +122,7 @@ func (m model) handleResponse(msg lib.Response) (tea.Model, tea.Cmd) {
 		headers[k] = v
 	}
 
-	go m.persistence.SaveHistory(lib.History{
+	m.persistence.SaveHistory(lib.History{
 		Url:     msg.Request.Address.Url,
 		Method:  msg.Request.Address.Method,
 		Date:    time.Now(),
@@ -123,6 +130,9 @@ func (m model) handleResponse(msg lib.Response) (tea.Model, tea.Cmd) {
 		Headers: headers,
 		Body:    msg.Request.Body,
 	})
+
+	newHistory := func() tea.Msg { return lib.NewHistory }
+	cmds = append(cmds, newHistory)
 
 	return m, tea.Batch(cmds...)
 }
@@ -158,12 +168,14 @@ func (m model) handleTrigger(msg lib.Trigger) (tea.Model, tea.Cmd, bool) {
 
 		return m, tea.Batch(cmds...), true
 
+	case lib.NewHistory:
+		m.historyList, _ = m.historyList.Update(msg)
+		return m, nil, true
+
 	default:
 		m.viewport, _ = m.viewport.Update(msg)
 		return m, nil, true
 	}
-
-	return nil, nil, false
 }
 
 func (m model) handeCommandInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -283,38 +295,44 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Forward the unhandled/trickled command to the active region
 	switch m.activeRegion {
-	case 0:
-		var cmd tea.Cmd
-		m.addressBar, cmd = m.addressBar.Update(msg)
+	case UrlRegion:
+		{
+			var cmd tea.Cmd
+			m.addressBar, cmd = m.addressBar.Update(msg)
 
-		switch msg := msg.(type) {
-		case tea.KeyMsg:
-			if m.middleView != VIEWPORT {
-				if msg.Type == tea.KeyUp || msg.Type == tea.KeyDown {
-					switch m.middleView {
-					case HISTORY:
-						m.historyList, _ = m.historyList.Update(msg)
-					case BOOKMARKS:
-						m.bookmarksList, _ = m.bookmarksList.Update(msg)
+			switch msg := msg.(type) {
+			case tea.KeyMsg:
+				{
+					if m.middleView != VIEWPORT {
+						if msg.Type == tea.KeyUp || msg.Type == tea.KeyDown {
+							switch m.middleView {
+							case HISTORY:
+								m.historyList, _ = m.historyList.Update(msg)
+								return m, nil
+							case BOOKMARKS:
+								m.bookmarksList, _ = m.bookmarksList.Update(msg)
+								return m, nil
+							}
+						}
+					}
+
+					addressEntry := m.addressBar.GetEntry()
+					if strings.HasPrefix(addressEntry, "$") {
+						m.middleView = HISTORY
+						m.historyList, _ = m.historyList.Update(history.Filter(addressEntry[1:]))
+					} else if strings.HasPrefix(addressEntry, "@") {
+						m.middleView = BOOKMARKS
+						m.bookmarksList, _ = m.bookmarksList.Update(bookmarks.Filter(addressEntry[1:]))
+					} else {
+						m.middleView = VIEWPORT
 					}
 				}
 			}
 
-			addressEntry := m.addressBar.GetEntry()
-			if strings.HasPrefix(addressEntry, "$") {
-				m.middleView = HISTORY
-				m.historyList, _ = m.historyList.Update(history.Filter(addressEntry[1:]))
-			} else if strings.HasPrefix(addressEntry, "@") {
-				m.middleView = BOOKMARKS
-				m.bookmarksList, _ = m.bookmarksList.Update(bookmarks.Filter(addressEntry[1:]))
-			} else {
-				m.middleView = VIEWPORT
-			}
+			cmds = append(cmds, cmd)
 		}
 
-		cmds = append(cmds, cmd)
-
-	case 1:
+	case ViewportRegion:
 		var cmd tea.Cmd
 		m.viewport, cmd = m.viewport.Update(msg)
 

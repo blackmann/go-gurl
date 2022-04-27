@@ -46,7 +46,6 @@ type PersistenceObserver interface {
 type Persistence interface {
 	SaveHistory(history History)
 	GetHistory() []History
-	AddListener(observer PersistenceObserver)
 }
 
 type DbPersistence struct {
@@ -67,12 +66,6 @@ func (d DbPersistence) GetHistory() []History {
 	d.db.Order("date desc").Find(&res)
 
 	return res
-}
-
-func (d DbPersistence) OnChange() {
-	for _, observer := range d.observers {
-		observer.OnChange(&d)
-	}
 }
 
 func NewDbPersistence() (DbPersistence, error) {
