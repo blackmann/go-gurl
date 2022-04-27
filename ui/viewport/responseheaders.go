@@ -52,3 +52,7 @@ func (model responseHeadersModel) Update(msg tea.Msg) (responseHeadersModel, tea
 func (model responseHeadersModel) View() string {
 	return model.headersList.View()
 }
+
+func (model *responseHeadersModel) Reset() {
+	model.headersList.SetItems([]list.Item{})
+}

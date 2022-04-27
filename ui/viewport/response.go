@@ -65,3 +65,8 @@ func (model responseModel) View() string {
 
 	return lipgloss.NewStyle().Padding(0, 2, 0, 2).Render(model.viewport.View())
 }
+
+func (model *responseModel) Reset() {
+	model.viewport.SetContent("")
+	model.hasResponse = false
+}

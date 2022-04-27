@@ -2,6 +2,7 @@ package addressbar
 
 import (
 	"errors"
+	"fmt"
 	"github.com/blackmann/gurl/lib"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -33,6 +34,10 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case "enter":
 			return model, lib.SubmitNewRequest
 		}
+
+	case lib.Address:
+		model.input.SetValue(fmt.Sprintf("%s %s", msg.Method, msg.Url))
+		return model, nil
 	}
 
 	var cmd tea.Cmd

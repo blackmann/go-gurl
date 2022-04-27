@@ -19,7 +19,6 @@ type Model struct {
 	keybinds     keymap
 	tabs         []string
 	responseBody string
-	enabled      bool
 
 	height int
 
@@ -27,10 +26,10 @@ type Model struct {
 	headers http.Header
 
 	// tabs
-	responseModel
-	requestBodyModel
-	headersModel
-	responseHeadersModel
+	responseModel        responseModel
+	requestBodyModel     requestBodyModel
+	headersModel         headersModel
+	responseHeadersModel responseHeadersModel
 }
 
 func NewViewport() Model {
@@ -121,6 +120,21 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 			return model, nil
 		}
+
+	case lib.History:
+		headers := http.Header{}
+		for k, v := range msg.Headers {
+			for _, value := range v {
+				headers.Add(k, value)
+			}
+		}
+
+		model.headers = headers
+
+		model.headersModel, _ = model.headersModel.Update(requestHeaders(headers))
+		model.requestBodyModel, _ = model.requestBodyModel.Update(requestBody(msg.Body))
+		model.responseModel.Reset()
+		model.responseHeadersModel.Reset()
 	}
 
 	var cmds []tea.Cmd
@@ -174,11 +188,6 @@ func (model Model) View() string {
 	}
 
 	render := viewportStyle.Render(fmt.Sprintf("%s\n%s", tabsRow, content))
-
-	// TODO: Implement
-	//if !model.enabled {
-	//	return disabledContent.Render(render)
-	//}
 
 	return render
 }

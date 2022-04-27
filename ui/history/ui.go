@@ -104,6 +104,11 @@ func (m Model) View() string {
 	return lipgloss.NewStyle().Margin(1, 0, 1, 0).Render(m.list.View())
 }
 
+func (m Model) GetSelected() lib.History {
+	cursor := m.list.Index()
+	return m.history[cursor]
+}
+
 func NewHistory(persistence lib.Persistence) Model {
 	h := Model{persistence: persistence}
 

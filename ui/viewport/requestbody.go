@@ -9,6 +9,8 @@ import (
 
 var encodedEnter = "¬"
 
+type requestBody string
+
 type requestBodyModel struct {
 	input textinput.Model
 
@@ -51,6 +53,13 @@ func (model requestBodyModel) Update(msg tea.Msg) (requestBodyModel, tea.Cmd) {
 			model.input.SetValue(o + encodedEnter)
 			return model, nil
 		}
+
+	case requestBody:
+		model.input.Reset()
+		cleaned := strings.Replace(string(msg), "\n", encodedEnter, -1)
+		model.input.SetValue(cleaned)
+
+		return model, nil
 	}
 
 	var cmd tea.Cmd

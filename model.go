@@ -29,8 +29,8 @@ var (
 type region int
 
 var (
-	UrlRegion      region = 0
-	ViewportRegion region = 1
+	URL region = 1
+	VP  region = 2
 )
 
 type model struct {
@@ -71,7 +71,7 @@ func (m model) submitRequest(request lib.Request) tea.Cmd {
 }
 
 func (m model) getMode() lib.Mode {
-	if m.activeRegion == 0 {
+	if m.activeRegion == URL {
 		return lib.Url
 	}
 
@@ -96,6 +96,15 @@ func (m model) performResize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	m.bookmarksList, _ = m.bookmarksList.Update(middleViewSize)
 
 	m.statusBar, _ = m.statusBar.Update(tea.WindowSizeMsg{Width: msg.Width})
+
+	return m, nil
+}
+
+func (m model) handleHistory(history lib.History) (model, tea.Cmd) {
+	m.viewport, _ = m.viewport.Update(history)
+	m.addressBar, _ = m.addressBar.Update(lib.Address{Url: history.Url, Method: history.Method})
+
+	m.middleView = VIEWPORT
 
 	return m, nil
 }
@@ -188,7 +197,6 @@ func (m model) handeCommandInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.command = ""
 		m.statusBar, _ = m.statusBar.Update(statusbar.UpdateFreetextCommand(""))
 		m.statusBar, _ = m.statusBar.Update(m.getMode())
-
 		return m, gainFocus
 	}
 
@@ -235,7 +243,6 @@ func (m model) handeCommandInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// TODO: Quick successive `esc` input should yield a reset state
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if m.commandMode {
@@ -249,7 +256,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
-			m.activeRegion = (m.activeRegion + 1) % 2 // only two views
+			if m.activeRegion == URL {
+				m.activeRegion = VP
+			} else {
+				m.activeRegion = URL
+			}
+
 			m.statusBar, _ = m.statusBar.Update(m.getMode())
 
 			// So that inputs receive "focus"
@@ -289,16 +301,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case lib.Response:
 		return m.handleResponse(msg)
+
+	case lib.History:
+		return m.handleHistory(msg)
 	}
 
 	var cmds []tea.Cmd
 
 	// Forward the unhandled/trickled command to the active region
 	switch m.activeRegion {
-	case UrlRegion:
+	case URL:
 		{
 			var cmd tea.Cmd
 			m.addressBar, cmd = m.addressBar.Update(msg)
+
+			cmds = append(cmds, cmd)
 
 			switch msg := msg.(type) {
 			case tea.KeyMsg:
@@ -309,6 +326,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							case HISTORY:
 								m.historyList, _ = m.historyList.Update(msg)
 								return m, nil
+
 							case BOOKMARKS:
 								m.bookmarksList, _ = m.bookmarksList.Update(msg)
 								return m, nil
@@ -317,10 +335,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 
 					addressEntry := m.addressBar.GetEntry()
-					if strings.HasPrefix(addressEntry, "$") {
+
+					if (isHistoryEntry(addressEntry) || isBookmarkEntry(addressEntry)) &&
+						msg.Type == tea.KeyEnter {
+						// If still typing a bookmark or address, then  remove the Trigger (New Request)
+						cmds = cmds[:len(cmds)-1]
+
+						if m.middleView == HISTORY {
+							selected := m.historyList.GetSelected()
+
+							prefillWithHistory := func() tea.Msg { return selected }
+
+							cmds = append(cmds, prefillWithHistory)
+						}
+					}
+
+					if isHistoryEntry(addressEntry) {
 						m.middleView = HISTORY
 						m.historyList, _ = m.historyList.Update(history.Filter(addressEntry[1:]))
-					} else if strings.HasPrefix(addressEntry, "@") {
+					} else if isBookmarkEntry(addressEntry) {
 						m.middleView = BOOKMARKS
 						m.bookmarksList, _ = m.bookmarksList.Update(bookmarks.Filter(addressEntry[1:]))
 					} else {
@@ -328,11 +361,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 			}
-
-			cmds = append(cmds, cmd)
 		}
 
-	case ViewportRegion:
+	case VP:
 		var cmd tea.Cmd
 		m.viewport, cmd = m.viewport.Update(msg)
 
@@ -372,14 +403,23 @@ func newAppModel() (model, error) {
 	}
 
 	return model{
-		addressBar:  addressbar.NewAddressBar(),
-		client:      lib.NewHttpClient(),
-		keybinds:    lib.DefaultKeyBinds(),
-		statusBar:   statusbar.NewStatusBar(),
-		viewport:    viewport.NewViewport(),
-		persistence: &db,
-		historyList: history.NewHistory(&db),
+		addressBar:   addressbar.NewAddressBar(),
+		client:       lib.NewHttpClient(),
+		keybinds:     lib.DefaultKeyBinds(),
+		statusBar:    statusbar.NewStatusBar(),
+		viewport:     viewport.NewViewport(),
+		persistence:  &db,
+		historyList:  history.NewHistory(&db),
+		activeRegion: URL,
 
 		enabled: true,
 	}, nil
+}
+
+func isHistoryEntry(s string) bool {
+	return strings.HasPrefix(s, "$")
+}
+
+func isBookmarkEntry(s string) bool {
+	return strings.HasPrefix(s, "@")
 }
