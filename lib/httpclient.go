@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -22,7 +23,10 @@ func NewHttpClient() DefaultClient {
 func (c DefaultClient) MakeRequest(request Request) (Response, error) {
 	start := time.Now()
 
-	req, err := http.NewRequest(request.Address.Method, request.Address.Url, request.Body)
+	req, err := http.NewRequest(request.Address.Method,
+		request.Address.Url,
+		strings.NewReader(request.Body))
+
 	req.Header = request.Headers
 
 	res, err := c.client.Do(req)

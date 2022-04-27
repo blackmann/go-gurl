@@ -103,16 +103,25 @@ func (m model) handleResponse(msg lib.Response) (tea.Model, tea.Cmd) {
 	m.statusBar, _ = m.statusBar.Update(statusbar.UpdateStatus(lib.IDLE))
 	m.statusBar, _ = m.statusBar.Update(statusbar.UpdateStatus(lib.Status(msg.Status)))
 	m.statusBar, _ = m.statusBar.Update(
+		// TODO: humanize the time
 		lib.ShortMessage(fmt.Sprintf("%dms %s", msg.Time, humanize.Bytes(uint64(len(msg.Body))))),
 	)
 
 	m.enabled = true
 
+	var headers = make(map[string][]string)
+
+	for k, v := range msg.Request.Headers {
+		headers[k] = v
+	}
+
 	go m.persistence.SaveHistory(lib.History{
-		Url:    msg.Request.Address.Url,
-		Method: msg.Request.Address.Method,
-		Date:   time.Now(),
-		Status: msg.Status,
+		Url:     msg.Request.Address.Url,
+		Method:  msg.Request.Address.Method,
+		Date:    time.Now(),
+		Status:  msg.Status,
+		Headers: headers,
+		Body:    msg.Request.Body,
 	})
 
 	return m, tea.Batch(cmds...)
@@ -142,7 +151,7 @@ func (m model) handleTrigger(msg lib.Trigger) (tea.Model, tea.Cmd, bool) {
 		cmds = append(cmds, m.submitRequest(lib.Request{
 			Address: address,
 			Headers: headers,
-			Body:    strings.NewReader(body),
+			Body:    body,
 		}))
 
 		m.enabled = false

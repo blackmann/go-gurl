@@ -1,20 +1,42 @@
 package lib
 
 import (
+	"encoding/json"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"time"
 )
 
 type History struct {
-	ID     uint `gorm:"primaryKey"`
-	Date   time.Time
-	Method string
-	Url    string
-	//Headers    map[string]string
-	Body       string
-	Annotation string
-	Status     int
+	ID                uint `gorm:"primaryKey"`
+	Date              time.Time
+	Method            string
+	Url               string
+	HeadersSerialized string
+	Body              string
+	Annotation        string
+	Status            int
+
+	Headers map[string][]string `gorm:"-"`
+}
+
+func (h *History) BeforeCreate(tx *gorm.DB) error {
+	if serialized, err := json.Marshal(h.Headers); err == nil {
+		h.HeadersSerialized = string(serialized)
+	}
+
+	return nil
+}
+
+func (h *History) AfterFind(tx *gorm.DB) error {
+	headers := make(map[string][]string)
+	err := json.Unmarshal([]byte(h.HeadersSerialized), &headers)
+
+	if err == nil {
+		h.Headers = headers
+	}
+
+	return err
 }
 
 type PersistenceObserver interface {
