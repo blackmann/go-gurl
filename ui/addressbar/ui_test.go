@@ -35,3 +35,42 @@ func TestModel_Update_onEnter(t *testing.T) {
 
 	assert.Equal(t, msg, lib.NewRequest)
 }
+
+func TestModel_Update_Address(t *testing.T) {
+	instance := NewAddressBar()
+
+	instance, _ = instance.Update(lib.Address{Url: "endpoint", Method: "POST"})
+
+	addr, _ := instance.GetAddress()
+	assert.Equal(t, "endpoint", addr.Url)
+	assert.Equal(t, "POST", addr.Method)
+}
+
+func TestModel_GetAddress_UrlOnly(t *testing.T) {
+	instance := NewAddressBar()
+	instance = enterString(instance, "endpoint")
+
+	addr, _ := instance.GetAddress()
+
+	assert.Equal(t, "endpoint", addr.Url)
+	assert.Equal(t, "GET", addr.Method)
+}
+
+func TestModel_GetAddress_UrlAndMethodOnly(t *testing.T) {
+	instance := NewAddressBar()
+	instance = enterString(instance, "PATCH endpoint")
+
+	addr, _ := instance.GetAddress()
+
+	assert.Equal(t, "endpoint", addr.Url)
+	assert.Equal(t, "PATCH", addr.Method)
+}
+
+func TestModel_GetEntry(t *testing.T) {
+	instance := NewAddressBar()
+	instance = enterString(instance, "endpoint")
+
+	entry := instance.GetEntry()
+
+	assert.Equal(t, "endpoint", entry)
+}

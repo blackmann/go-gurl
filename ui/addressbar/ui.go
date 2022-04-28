@@ -32,7 +32,8 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
-			return model, lib.SubmitNewRequest
+			submitRequest := func() tea.Msg { return lib.NewRequest }
+			return model, submitRequest
 		}
 
 	case lib.Address:
