@@ -19,7 +19,7 @@ func (model Model) Init() tea.Cmd {
 
 func NewAddressBar() Model {
 	t := textinput.New()
-	t.Placeholder = "GET @adeton/shops"
+	t.Placeholder = "GET @endpoint/path"
 	t.Prompt = "¬ "
 
 	t.Focus()
@@ -37,6 +37,13 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	case lib.Address:
 		model.input.SetValue(fmt.Sprintf("%s %s", msg.Method, msg.Url))
+		model.input.CursorEnd()
+		return model, nil
+
+	case string:
+		model.input.SetValue(msg)
+		model.input.CursorEnd()
+
 		return model, nil
 	}
 

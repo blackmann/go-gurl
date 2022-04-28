@@ -34,7 +34,7 @@ func (model *headersModel) Init() tea.Cmd {
 	model.headerInput.Prompt = "+  "
 	model.headerInput.Focus()
 
-	listDefinition := list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0)
+	listDefinition := list.New([]list.Item{}, lib.GetDefaultListDelegate(), 0, 0)
 	listDefinition.SetShowTitle(false)
 	listDefinition.SetFilteringEnabled(false)
 	listDefinition.DisableQuitKeybindings()

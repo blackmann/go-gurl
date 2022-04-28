@@ -2,6 +2,8 @@ package lib
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"time"
@@ -39,18 +41,60 @@ func (h *History) AfterFind(tx *gorm.DB) error {
 	return err
 }
 
+type Bookmark struct {
+	ID   uint   `gorm:"primaryKey"`
+	Name string `gorm:"unique"`
+	Url  string
+}
+
 type Persistence interface {
 	SaveHistory(history History)
 	GetHistory() []History
-	AnnotateHistory(id int64, annotation string)
+	AnnotateHistory(id uint, annotation string) error
+	SaveBookmark(bookmark Bookmark)
+	GetBookmarks() []Bookmark
+	GetBookmark(name string) (Bookmark, error)
 }
 
 type DbPersistence struct {
 	db *gorm.DB
 }
 
-func (d DbPersistence) AnnotateHistory(id int64, annotation string) {
-	d.db.Model(History{}).Where("id = ?", id).Update("annotation", annotation)
+func (d DbPersistence) SaveBookmark(bookmark Bookmark) {
+	if d.db.Model(&bookmark).Where("name = ?", bookmark.Name).Updates(&bookmark).RowsAffected == 0 {
+		d.db.Create(&bookmark)
+	}
+}
+
+func (d DbPersistence) GetBookmarks() []Bookmark {
+	var res []Bookmark
+	d.db.Order("name asc").Find(&res)
+
+	return res
+}
+
+func (d DbPersistence) GetBookmark(name string) (Bookmark, error) {
+	var res Bookmark
+	tx := d.db.Where("name = ?", name).Find(&res)
+
+	if tx.RowsAffected == 0 {
+		return Bookmark{}, errors.New(fmt.Sprintf("no bookmark with this name %s", name))
+	}
+
+	return res, nil
+}
+
+func (d DbPersistence) AnnotateHistory(id uint, annotation string) error {
+	var existing History
+	if tx := d.db.Where("annotation = ?", annotation).Find(&existing); tx.RowsAffected == 0 {
+		// if none exists, go ahead and set it
+		d.db.Model(History{}).Where("id = ?", id).Update("annotation", annotation)
+	} else if existing.ID == id {
+		// setting on itself so ignore
+		return nil
+	}
+
+	return errors.New(fmt.Sprintf("history exists with this annotation: %s", annotation))
 }
 
 func (d DbPersistence) SaveHistory(history History) {
@@ -67,6 +111,7 @@ func (d DbPersistence) GetHistory() []History {
 func NewDbPersistence() (DbPersistence, error) {
 	if db, err := gorm.Open(sqlite.Open("config.db"), &gorm.Config{}); err == nil {
 		db.AutoMigrate(&History{})
+		db.AutoMigrate(&Bookmark{})
 
 		return DbPersistence{db: db}, nil
 	} else {

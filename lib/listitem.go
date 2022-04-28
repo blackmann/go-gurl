@@ -3,6 +3,7 @@ package lib
 type ListItem struct {
 	Key   string
 	Value string
+	Ref   interface{}
 }
 
 func (h ListItem) FilterValue() string {

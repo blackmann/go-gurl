@@ -8,8 +8,8 @@ TUI `curl` as a personal replacement of Postman. Postman just feels overly bloat
 ### Todo
 
 - [x] Syntax highlighting
-- [ ] Bookmarking
-- [ ] History
-- [ ] Commands
-- [ ] Persistence/Config file
+- [x] Bookmarking
+- [x] History
+- [x] Commands
+- [x] Persistence/Config file
 - [ ] All tests

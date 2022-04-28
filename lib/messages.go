@@ -22,5 +22,6 @@ var (
 	TabLeft  Trigger = 4
 	TabRight Trigger = 5
 
-	UpdateHistory Trigger = 6
+	UpdateHistory   Trigger = 6
+	UpdateBookmarks Trigger = 7
 )

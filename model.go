@@ -14,6 +14,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dustin/go-humanize"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -58,18 +59,27 @@ type model struct {
 
 func (m model) annotate(argsString string) (model, tea.Cmd) {
 	args := strings.Split(argsString, " ")
-	log.Println("Annotating", args)
 	id := args[0][1:] // without the $
 	annotation := args[1]
 
-	intId, _ := strconv.ParseInt(id, 10, 64)
-	m.persistence.AnnotateHistory(intId, annotation)
+	intId, _ := strconv.ParseUint(id, 10, 64)
+	_ = m.persistence.AnnotateHistory(uint(intId), annotation)
 
 	updateHistory := func() tea.Msg {
 		return lib.UpdateHistory
 	}
 
 	return m, updateHistory
+}
+
+func (m model) createBookmark(parts []string) (model, tea.Cmd) {
+	m.persistence.SaveBookmark(lib.Bookmark{Url: parts[1], Name: parts[0][1:]})
+
+	updateBookmarks := func() tea.Msg {
+		return lib.UpdateBookmarks
+	}
+
+	return m, updateBookmarks
 }
 
 func (m model) submitRequest(request lib.Request) tea.Cmd {
@@ -129,6 +139,17 @@ func (m model) handleHistory(history lib.History) (model, tea.Cmd) {
 	return m, nil
 }
 
+func (m model) handleBookmark(bookmark lib.Bookmark) (model, tea.Cmd) {
+	entry := m.addressBar.GetEntry()
+	parts := strings.Split(entry, "@")
+	autocomplete := fmt.Sprintf("%s@%s", parts[0], bookmark.Name)
+
+	m.addressBar, _ = m.addressBar.Update(autocomplete)
+	m.middleView = VIEWPORT
+
+	return m, nil
+}
+
 func (m model) handleResponse(msg lib.Response) (model, tea.Cmd) {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
@@ -172,10 +193,7 @@ func (m model) handleTrigger(msg lib.Trigger) (model, tea.Cmd, bool) {
 		var cmds []tea.Cmd
 		var cmd tea.Cmd
 
-		// Status bar returns tick cmd when processing
 		m.statusBar, _ = m.statusBar.Update(lib.ShortMessage(""))
-		m.statusBar, cmd = m.statusBar.Update(statusbar.UpdateStatus(lib.PROCESSING))
-		cmds = append(cmds, cmd)
 
 		headers := m.viewport.GetHeaders()
 		body := m.viewport.GetBody()
@@ -187,6 +205,21 @@ func (m model) handleTrigger(msg lib.Trigger) (model, tea.Cmd, bool) {
 			log.Println("Error parsing address", err)
 			return m, nil, true
 		}
+
+		if match := bookmarkUrlRegex.Find([]byte(address.Url)); match != nil {
+			bookmark, err := m.persistence.GetBookmark(string(match)[1:])
+
+			if err != nil {
+				log.Println("Error while parsing url", err)
+				return m, nil, false
+			}
+
+			url := bookmarkUrlRegex.ReplaceAll([]byte(address.Url), []byte(bookmark.Url))
+			address.Url = string(url)
+		}
+
+		m.statusBar, cmd = m.statusBar.Update(statusbar.UpdateStatus(lib.PROCESSING))
+		cmds = append(cmds, cmd)
 
 		cmds = append(cmds, m.submitRequest(lib.Request{
 			Address: address,
@@ -200,6 +233,10 @@ func (m model) handleTrigger(msg lib.Trigger) (model, tea.Cmd, bool) {
 
 	case lib.UpdateHistory:
 		m.historyList, _ = m.historyList.Update(msg)
+		return m, nil, true
+
+	case lib.UpdateBookmarks:
+		m.bookmarksList, _ = m.bookmarksList.Update(msg)
 		return m, nil, true
 
 	default:
@@ -320,13 +357,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			parts[i] = strings.Trim(v, " ")
 		}
 
-		switch parts[0] {
-		case "/annotate":
-			return m.annotate(parts[1])
+		if strings.HasPrefix(parts[0], "@") {
+			return m.createBookmark(parts)
+		} else {
+			switch parts[0] {
+			case "/annotate":
+				return m.annotate(parts[1])
+			}
 		}
 
 		m.resetCommandInput()
-
 		return m, nil
 
 	case lib.Trigger:
@@ -340,6 +380,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case lib.History:
 		return m.handleHistory(msg)
+
+	case lib.Bookmark:
+		return m.handleBookmark(msg)
 	}
 
 	var cmds []tea.Cmd
@@ -349,6 +392,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case URL:
 		{
 			var cmd tea.Cmd
+
+			// A message that could be passed to the addressBar includes
+			// the enter key. In this case, the addressBar returns a Trigger:NewRequest
+			// Whether to go ahead with this trigger will be handled below
 			m.addressBar, cmd = m.addressBar.Update(msg)
 
 			cmds = append(cmds, cmd)
@@ -356,17 +403,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg := msg.(type) {
 			case tea.KeyMsg:
 				{
-					if m.middleView != VIEWPORT {
-						if msg.Type == tea.KeyUp || msg.Type == tea.KeyDown {
-							switch m.middleView {
-							case HISTORY:
-								m.historyList, _ = m.historyList.Update(msg)
-								return m, nil
+					if m.middleView != VIEWPORT &&
+						(msg.Type == tea.KeyUp || msg.Type == tea.KeyDown) {
+						switch m.middleView {
+						case HISTORY:
+							m.historyList, _ = m.historyList.Update(msg)
+							return m, nil
 
-							case BOOKMARKS:
-								m.bookmarksList, _ = m.bookmarksList.Update(msg)
-								return m, nil
-							}
+						case BOOKMARKS:
+							m.bookmarksList, _ = m.bookmarksList.Update(msg)
+							return m, nil
 						}
 					}
 
@@ -374,15 +420,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					if (isHistoryEntry(addressEntry) || isBookmarkEntry(addressEntry)) &&
 						msg.Type == tea.KeyEnter {
-						// If still typing a bookmark or address, then  remove the Trigger (New Request)
+						// Still typing a bookmark or address, so  remove the Trigger (New Request)
+						submitRequest := cmds[len(cmds)-1]
 						cmds = cmds[:len(cmds)-1]
 
 						if m.middleView == HISTORY {
-							selected := m.historyList.GetSelected()
-
-							prefillWithHistory := func() tea.Msg { return selected }
-
-							cmds = append(cmds, prefillWithHistory)
+							if selected, err := m.historyList.GetSelected(); err == nil {
+								prefillWithHistory := func() tea.Msg { return selected }
+								cmds = append(cmds, prefillWithHistory)
+							}
+						} else {
+							if selected, err := m.bookmarksList.GetSelected(); err == nil {
+								if m.middleView == VIEWPORT {
+									// Still typing a bookmark but a selection may have been made
+									// that's why the viewport is in view, so we make the request
+									cmds = append(cmds, submitRequest)
+								} else {
+									completeWithBookmark := func() tea.Msg { return selected }
+									cmds = append(cmds, completeWithBookmark)
+								}
+							}
 						}
 					}
 
@@ -391,7 +448,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.historyList, _ = m.historyList.Update(history.Filter(addressEntry[1:]))
 					} else if isBookmarkEntry(addressEntry) {
 						m.middleView = BOOKMARKS
-						m.bookmarksList, _ = m.bookmarksList.Update(bookmarks.Filter(addressEntry[1:]))
+						parts := strings.Split(addressEntry, "@")
+						filter := parts[1]
+						m.bookmarksList, _ = m.bookmarksList.Update(bookmarks.Filter(filter))
 					} else {
 						m.middleView = VIEWPORT
 					}
@@ -439,24 +498,28 @@ func newAppModel() (model, error) {
 	}
 
 	return model{
-		addressBar:   addressbar.NewAddressBar(),
-		client:       lib.NewHttpClient(),
-		keybinds:     lib.DefaultKeyBinds(),
-		statusBar:    statusbar.NewStatusBar(),
-		viewport:     viewport.NewViewport(),
-		persistence:  &db,
-		historyList:  history.NewHistory(&db),
-		activeRegion: URL,
-		middleView:   VIEWPORT,
+		addressBar:    addressbar.NewAddressBar(),
+		client:        lib.NewHttpClient(),
+		keybinds:      lib.DefaultKeyBinds(),
+		statusBar:     statusbar.NewStatusBar(),
+		viewport:      viewport.NewViewport(),
+		persistence:   &db,
+		historyList:   history.NewHistoryList(&db),
+		bookmarksList: bookmarks.NewBookmarksList(&db),
+		activeRegion:  URL,
+		middleView:    VIEWPORT,
 
 		enabled: true,
 	}, nil
 }
+
+var bookmarkEntryRegex = regexp.MustCompile(`^((GET|POST|PUT|PATCH|OPTIONS|HEAD|DELETE) )?@\w*$`)
+var bookmarkUrlRegex = regexp.MustCompile(`^@\w*`)
 
 func isHistoryEntry(s string) bool {
 	return strings.HasPrefix(s, "$")
 }
 
 func isBookmarkEntry(s string) bool {
-	return strings.HasPrefix(s, "@")
+	return bookmarkEntryRegex.Match([]byte(s))
 }

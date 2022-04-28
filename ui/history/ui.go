@@ -1,6 +1,7 @@
 package history
 
 import (
+	"errors"
 	"fmt"
 	"github.com/blackmann/gurl/lib"
 	"github.com/charmbracelet/bubbles/list"
@@ -36,13 +37,13 @@ func (m *Model) Init() tea.Cmd {
 
 	m.list = listDefinition
 
-	m.prefetchHistory()
+	m.fetchHistory()
 	m.initialized = true
 
 	return nil
 }
 
-func (m *Model) prefetchHistory() {
+func (m *Model) fetchHistory() {
 	m.history = m.persistence.GetHistory()
 }
 
@@ -81,10 +82,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				lib.ListItem{
 					Key:   fmt.Sprintf("%s %s", item.Method, item.Url),
 					Value: fmt.Sprintf("%s%s", left, right),
+					Ref:   item,
 				})
 		}
 
 		m.list.SetItems(historyItems)
+		m.list.ResetSelected()
 		return m, nil
 
 	case lib.Trigger:
@@ -104,12 +107,16 @@ func (m Model) View() string {
 	return lipgloss.NewStyle().Margin(1, 0, 1, 0).Render(m.list.View())
 }
 
-func (m Model) GetSelected() lib.History {
-	cursor := m.list.Index()
-	return m.history[cursor]
+func (m Model) GetSelected() (lib.History, error) {
+	if len(m.history) == 0 {
+		return lib.History{}, errors.New("no history entry")
+	}
+
+	// long cast
+	return m.list.SelectedItem().(lib.ListItem).Ref.(lib.History), nil
 }
 
-func NewHistory(persistence lib.Persistence) Model {
+func NewHistoryList(persistence lib.Persistence) Model {
 	h := Model{persistence: persistence}
 
 	return h
