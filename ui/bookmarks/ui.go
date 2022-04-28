@@ -53,7 +53,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		for _, b := range m.bookmarks {
 			if strings.Contains(b.Name, string(msg)) {
-				bookmarks = append(bookmarks, lib.ListItem{Key: b.Name, Value: b.Url, Ref: b})
+				bookmarks = append(bookmarks,
+					lib.ListItem{Key: b.Name, Value: b.Url, Ref: b})
 			}
 		}
 
