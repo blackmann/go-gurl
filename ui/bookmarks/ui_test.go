@@ -9,16 +9,16 @@ import (
 	"testing"
 )
 
-func getTestBookmarkModal(persistence lib.Persistence) Model {
-	return Model{persistence: persistence}
+func getTestBookmarkModal(controller *gomock.Controller) (Model, *mock_lib.MockPersistence) {
+	persistence := mock_lib.NewMockPersistence(controller)
+	return Model{persistence: persistence}, persistence
 }
 
 func TestModel_Init(t *testing.T) {
 	controller := gomock.NewController(t)
 	defer controller.Finish()
 
-	persistence := mock_lib.NewMockPersistence(controller)
-	bookmarkModal := getTestBookmarkModal(persistence)
+	bookmarkModal, persistence := getTestBookmarkModal(controller)
 	persistence.EXPECT().GetBookmarks().Return([]lib.Bookmark{})
 
 	// Intentionally sending nil so that it initializes
@@ -31,8 +31,7 @@ func TestModel_Update_Filter(t *testing.T) {
 	controller := gomock.NewController(t)
 	defer controller.Finish()
 
-	persistence := mock_lib.NewMockPersistence(controller)
-	bookmarkModal := getTestBookmarkModal(persistence)
+	bookmarkModal, persistence := getTestBookmarkModal(controller)
 	persistence.EXPECT().GetBookmarks().Return([]lib.Bookmark{
 		{ID: 1, Name: "example", Url: "https://example"},
 		{ID: 2, Name: "sample", Url: "https://sample"},
@@ -48,8 +47,7 @@ func TestModel_Update_UpdateBookmarks(t *testing.T) {
 	controller := gomock.NewController(t)
 	defer controller.Finish()
 
-	persistence := mock_lib.NewMockPersistence(controller)
-	bookmarkModal := getTestBookmarkModal(persistence)
+	bookmarkModal, persistence := getTestBookmarkModal(controller)
 
 	persistence.EXPECT().GetBookmarks().
 		Return([]lib.Bookmark{})
@@ -74,8 +72,7 @@ func TestModel_Update_KeyDown(t *testing.T) {
 	controller := gomock.NewController(t)
 	defer controller.Finish()
 
-	persistence := mock_lib.NewMockPersistence(controller)
-	bookmarkModal := getTestBookmarkModal(persistence)
+	bookmarkModal, persistence := getTestBookmarkModal(controller)
 
 	persistence.EXPECT().GetBookmarks().
 		Return([]lib.Bookmark{
