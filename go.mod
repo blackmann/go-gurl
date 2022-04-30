@@ -1,4 +1,4 @@
-module github.com/blackmann/gurl
+module github.com/blackmann/go-gurl
 
 go 1.18
 

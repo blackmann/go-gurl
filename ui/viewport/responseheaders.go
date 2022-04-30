@@ -1,7 +1,7 @@
 package viewport
 
 import (
-	"github.com/blackmann/gurl/lib"
+	"github.com/blackmann/go-gurl/lib"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"strings"

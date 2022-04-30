@@ -2,7 +2,7 @@ package bookmarks
 
 import (
 	"errors"
-	"github.com/blackmann/gurl/lib"
+	"github.com/blackmann/go-gurl/lib"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"

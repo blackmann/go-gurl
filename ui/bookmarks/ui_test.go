@@ -1,8 +1,8 @@
 package bookmarks
 
 import (
-	"github.com/blackmann/gurl/lib"
-	"github.com/blackmann/gurl/mock_lib"
+	"github.com/blackmann/go-gurl/lib"
+	"github.com/blackmann/go-gurl/mock_lib"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"

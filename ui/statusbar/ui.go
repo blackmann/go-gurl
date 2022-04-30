@@ -2,7 +2,7 @@ package statusbar
 
 import (
 	"fmt"
-	"github.com/blackmann/gurl/lib"
+	"github.com/blackmann/go-gurl/lib"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"

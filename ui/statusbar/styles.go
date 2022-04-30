@@ -1,7 +1,7 @@
 package statusbar
 
 import (
-	"github.com/blackmann/gurl/lib"
+	"github.com/blackmann/go-gurl/lib"
 	"github.com/charmbracelet/lipgloss"
 )
 

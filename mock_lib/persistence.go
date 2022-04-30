@@ -7,7 +7,7 @@ package mock_lib
 import (
 	reflect "reflect"
 
-	lib "github.com/blackmann/gurl/lib"
+	lib "github.com/blackmann/go-gurl/lib"
 	gomock "github.com/golang/mock/gomock"
 )
 

@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/blackmann/gurl/lib"
-	"github.com/blackmann/gurl/ui/addressbar"
-	"github.com/blackmann/gurl/ui/bookmarks"
-	"github.com/blackmann/gurl/ui/history"
-	"github.com/blackmann/gurl/ui/statusbar"
-	"github.com/blackmann/gurl/ui/viewport"
+	"github.com/blackmann/go-gurl/lib"
+	"github.com/blackmann/go-gurl/ui/addressbar"
+	"github.com/blackmann/go-gurl/ui/bookmarks"
+	"github.com/blackmann/go-gurl/ui/history"
+	"github.com/blackmann/go-gurl/ui/statusbar"
+	"github.com/blackmann/go-gurl/ui/viewport"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
