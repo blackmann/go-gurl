@@ -1,5 +1,7 @@
 # go-gurl
 
+![Demo](assets/demo.gif)
+
 TUI `"curl"` as a personal replacement of Postman. Postman just feels overly bloated in appearance and as a program.
 This is written purely in Golang and does not use `curl` under the hood.
 
