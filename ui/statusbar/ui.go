@@ -91,15 +91,25 @@ func (model Model) View() string {
 		} else {
 			status = errorStatusStyle.Render(fmt.Sprintf("%d", value))
 		}
-
 	}
 
 	mutedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#999"))
 
-	half := lipgloss.NewStyle().Width(model.width/2 - 2) // Left/right padding removed
+	halfWidth := model.width/2 - 2
+	half := lipgloss.NewStyle().Width(halfWidth) // Left/right padding removed
+
+	// we need to truncate the command entry to fit one line
+	commandEntry := model.commandEntry
+	modeLength := len(string(model.mode)) + 2 // for space and colon
+
+	truncateIndex := len(commandEntry) - (halfWidth - modeLength)
+	if halfWidth > 0 && truncateIndex > 0 {
+		commandEntry = fmt.Sprintf("> …%s", commandEntry[truncateIndex+3:])
+	}
 
 	rightHalf := half.Copy().Align(lipgloss.Right).
-		Render(fmt.Sprintf("%s :%s", model.commandEntry, mutedStyle.Render(string(model.mode))))
+		MaxHeight(1).
+		Render(fmt.Sprintf("%s :%s", commandEntry, mutedStyle.Render(string(model.mode))))
 
 	leftHalf := half.Copy().Align(lipgloss.Left).
 		Render(fmt.Sprintf("%s %s", status, mutedStyle.Render(string(model.message))))
