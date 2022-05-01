@@ -109,6 +109,7 @@ func (model Model) View() string {
 	commandEntry := model.commandEntry
 	modeLength := len(string(model.mode)) + 2 // for space and colon
 
+	// TODO: Move this to utils
 	truncateIndex := len(commandEntry) - (halfWidth - modeLength)
 	if halfWidth > 0 && truncateIndex > 0 {
 		commandEntry = fmt.Sprintf("> …%s", commandEntry[truncateIndex+3:])
