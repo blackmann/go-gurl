@@ -108,7 +108,7 @@ func (m *model) resetCommandInput() {
 	m.command = ""
 	m.commandMode = false
 
-	m.statusBar, _ = m.statusBar.Update(statusbar.UpdateFreetextCommand(""))
+	m.statusBar, _ = m.statusBar.Update(statusbar.CommandInput(""))
 }
 
 func (m model) performResize(msg tea.WindowSizeMsg) (model, tea.Cmd) {
@@ -179,8 +179,7 @@ func (m model) handleResponse(msg lib.Response) (model, tea.Cmd) {
 	m.viewport, cmd = m.viewport.Update(m.viewport.SetResponse(msg))
 	cmds = append(cmds, cmd)
 
-	m.statusBar, _ = m.statusBar.Update(statusbar.UpdateStatus(lib.IDLE))
-	m.statusBar, _ = m.statusBar.Update(statusbar.UpdateStatus(lib.Status(msg.Status)))
+	m.statusBar, _ = m.statusBar.Update(lib.Status(msg.Status))
 	m.statusBar, _ = m.statusBar.Update(
 		// TODO: humanize the time
 		lib.ShortMessage(fmt.Sprintf("%dms %s", msg.Time, humanize.Bytes(uint64(len(msg.Body))))),
@@ -240,7 +239,7 @@ func (m model) handleTrigger(msg lib.Trigger) (model, tea.Cmd, bool) {
 			address.Url = string(url)
 		}
 
-		m.statusBar, cmd = m.statusBar.Update(statusbar.UpdateStatus(lib.PROCESSING))
+		m.statusBar, cmd = m.statusBar.Update(lib.PROCESSING)
 		cmds = append(cmds, cmd)
 
 		cmds = append(cmds, m.submitRequest(lib.Request{
@@ -317,7 +316,7 @@ func (m model) handeCommandInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	m.statusBar, _ = m.statusBar.Update(statusbar.
-		UpdateFreetextCommand(fmt.Sprintf("%s%s", prefix, m.command)))
+		CommandInput(fmt.Sprintf("%s%s", prefix, m.command)))
 
 	return m, nil
 }
@@ -359,7 +358,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			m.commandMode = true
-			m.statusBar, _ = m.statusBar.Update(statusbar.UpdateFreetextCommand(">"))
+			m.statusBar, _ = m.statusBar.Update(statusbar.CommandInput(">"))
 			m.statusBar, _ = m.statusBar.Update(lib.Cmd)
 
 			return m, func() tea.Msg {

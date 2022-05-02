@@ -9,8 +9,15 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// A message sent with a value to set as the status' value
-type statusUpdate lib.Status
+// CommandInput is an entry from the keyboard
+// that is mapped to an action. For example, ":q" to quit, lib.
+// The action is not necessarily performed by statusbar. We're
+// only using this type as a state update message type.
+//
+//  statusbar.Update(commandInput(":q"))
+//
+// This is a tea.Msg type
+type CommandInput string
 
 type Model struct {
 	spinner  spinner.Model
@@ -32,14 +39,14 @@ func NewStatusBar() Model {
 
 func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case commandInput:
+	case CommandInput:
 		model.commandEntry = string(msg)
 		return model, nil
 
-	case statusUpdate:
+	case lib.Status:
 		// Allow to flow through so ticking can begin for
 		// status == PROCESSING
-		model.status = lib.Status(msg)
+		model.status = msg
 
 	case tea.WindowSizeMsg:
 		model.width = msg.Width
@@ -118,6 +125,7 @@ func (model Model) View() string {
 	return barStyle.Copy().Width(model.width).Render(render)
 }
 
+// TODO: Move this to utils
 func truncateCommand(msg string, width int, modeLength int) string {
 	truncateIndex := len(msg) - width - modeLength
 	if width > 0 && truncateIndex > 0 {
