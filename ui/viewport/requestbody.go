@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-var encodedEnter = "¬"
+var encodedEnter = "¶"
 
 type requestBody string
 

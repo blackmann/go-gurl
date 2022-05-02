@@ -79,7 +79,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				Render(fmt.Sprintf("%s $%d %s", humanize.Time(item.Date), item.ID, item.Annotation))
 
 			historyItems = append(historyItems,
-				lib.ListItem{
+				lib.Pair{
 					Key:   fmt.Sprintf("%s %s", item.Method, item.Url),
 					Value: fmt.Sprintf("%s%s", left, right),
 					Ref:   item,
@@ -113,7 +113,7 @@ func (m Model) GetSelected() (lib.History, error) {
 	}
 
 	// long cast
-	return m.list.SelectedItem().(lib.ListItem).Ref.(lib.History), nil
+	return m.list.SelectedItem().(lib.Pair).Ref.(lib.History), nil
 }
 
 func NewHistoryList(persistence lib.Persistence) Model {

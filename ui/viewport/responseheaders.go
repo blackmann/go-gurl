@@ -32,7 +32,7 @@ func (model responseHeadersModel) Update(msg tea.Msg) (responseHeadersModel, tea
 	case lib.Response:
 		var items []list.Item
 		for key, values := range msg.Headers {
-			items = append(items, lib.ListItem{
+			items = append(items, lib.Pair{
 				Key:   key,
 				Value: strings.Join(values, ","),
 			})

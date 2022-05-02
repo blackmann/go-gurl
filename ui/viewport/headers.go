@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"net/http"
 	"sort"
 	"strings"
 )
@@ -58,10 +59,10 @@ func (model headersModel) Update(msg tea.Msg) (headersModel, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		model.list.SetHeight(msg.Height - 2)
 
-	case requestHeaders:
+	case http.Header:
 		var items []list.Item
 		for key, values := range msg {
-			items = append(items, lib.ListItem{Key: key, Value: strings.Join(values, ",")})
+			items = append(items, lib.Pair{Key: key, Value: strings.Join(values, ",")})
 		}
 
 		// Sort based on entry
@@ -92,7 +93,7 @@ func (model headersModel) Update(msg tea.Msg) (headersModel, tea.Cmd) {
 				key, value := strings.Trim(parts[0], " "), strings.Trim(parts[1], " ")
 
 				cmd := func() tea.Msg {
-					return lib.ListItem{Key: key, Value: value}
+					return lib.Pair{Key: key, Value: value}
 				}
 
 				model.headerInput.SetValue("")

@@ -96,11 +96,11 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		return model, nil
 
-	case lib.ListItem:
+	case lib.Pair:
 		model.headers.Set(msg.Key, msg.Value)
 
 		cmd := func() tea.Msg {
-			return requestHeaders(model.headers)
+			return model.headers
 		}
 
 		return model, cmd
@@ -131,7 +131,7 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		model.headers = headers
 
-		model.headersModel, _ = model.headersModel.Update(requestHeaders(headers))
+		model.headersModel, _ = model.headersModel.Update(headers)
 		model.requestBodyModel, _ = model.requestBodyModel.Update(requestBody(msg.Body))
 		model.responseModel.Reset()
 		model.responseHeadersModel.Reset()

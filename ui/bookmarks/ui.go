@@ -54,7 +54,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		for _, b := range m.bookmarks {
 			if strings.Contains(b.Name, string(msg)) {
 				bookmarks = append(bookmarks,
-					lib.ListItem{Key: b.Name, Value: b.Url, Ref: b})
+					lib.Pair{Key: b.Name, Value: b.Url, Ref: b})
 			}
 		}
 
@@ -82,7 +82,7 @@ func (m Model) GetSelected() (lib.Bookmark, error) {
 		return lib.Bookmark{}, errors.New("no bookmark entry")
 	}
 
-	return m.list.SelectedItem().(lib.ListItem).Ref.(lib.Bookmark), nil
+	return m.list.SelectedItem().(lib.Pair).Ref.(lib.Bookmark), nil
 }
 
 func NewBookmarksList(persistence lib.Persistence) Model {

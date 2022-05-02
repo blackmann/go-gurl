@@ -1,19 +1,19 @@
 package lib
 
-type ListItem struct {
+type Pair struct {
 	Key   string
 	Value string
 	Ref   interface{}
 }
 
-func (h ListItem) FilterValue() string {
+func (h Pair) FilterValue() string {
 	return h.Key
 }
 
-func (h ListItem) Title() string {
+func (h Pair) Title() string {
 	return h.Key
 }
 
-func (h ListItem) Description() string {
+func (h Pair) Description() string {
 	return h.Value
 }
