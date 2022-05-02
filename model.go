@@ -162,7 +162,7 @@ func (m model) handleRequestError(msg lib.RequestError) (model, tea.Cmd) {
 	cmds = append(cmds, cmd)
 
 	// update statusbar
-	m.statusBar, _ = m.statusBar.Update(statusbar.UpdateStatus(lib.ERROR))
+	m.statusBar, _ = m.statusBar.Update(lib.ERROR)
 	m.statusBar, _ = m.statusBar.Update(
 		lib.ShortMessage("See response tab for details"),
 	)
