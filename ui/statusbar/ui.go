@@ -2,6 +2,7 @@ package statusbar
 
 import (
 	"fmt"
+
 	"github.com/blackmann/go-gurl/lib"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
@@ -78,6 +79,8 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 func (model Model) View() string {
 	var status string
+	shortMessage := string(model.message)
+	halfWidth := model.width/2 - 2
 
 	switch model.status {
 	case lib.PROCESSING:
@@ -87,6 +90,8 @@ func (model Model) View() string {
 
 	case lib.ERROR:
 		status = errorStatusStyle.Render("Error")
+		w, _ := lipgloss.Size(status)
+		shortMessage = truncateMessage(shortMessage, halfWidth, w*2)
 
 	default:
 		value := model.status.GetValue()
@@ -101,28 +106,47 @@ func (model Model) View() string {
 	}
 
 	mutedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#999"))
-
-	halfWidth := model.width/2 - 2
 	half := lipgloss.NewStyle().Width(halfWidth) // Left/right padding removed
 
 	// we need to truncate the command entry to fit one line
 	commandEntry := model.commandEntry
 	modeLength := len(string(model.mode)) + 2 // for space and colon
-
-	// TODO: Move this to utils
-	truncateIndex := len(commandEntry) - (halfWidth - modeLength)
-	if halfWidth > 0 && truncateIndex > 0 {
-		commandEntry = fmt.Sprintf("> …%s", commandEntry[truncateIndex+3:])
-	}
+	commandEntry = truncateCommand(commandEntry, halfWidth, modeLength)
 
 	rightHalf := half.Copy().Align(lipgloss.Right).
 		MaxHeight(1).
 		Render(fmt.Sprintf("%s :%s", commandEntry, mutedStyle.Render(string(model.mode))))
 
 	leftHalf := half.Copy().Align(lipgloss.Left).
-		Render(fmt.Sprintf("%s %s", status, mutedStyle.Render(string(model.message))))
+		Render(fmt.Sprintf("%s %s", status, mutedStyle.Render(shortMessage)))
 
 	render := fmt.Sprintf("%s %s", leftHalf, rightHalf)
 
 	return barStyle.Copy().Width(model.width).Render(render)
+}
+
+// TODO: Move this to utils
+func truncateCommand(msg string, width int, modeLength int) string {
+	truncateIndex := len(msg) - width - modeLength
+	if width > 0 && truncateIndex > 0 {
+		return fmt.Sprintf("> …%s", msg[truncateIndex+3:])
+	}
+
+	return msg
+}
+
+func truncateMessage(msg string, width int, statusLength int) string {
+	truncateIndex := statusLength + len(msg) - width
+	if width > 0 && truncateIndex > 0 {
+		return fmt.Sprintf("%s…", msg[:max(len(msg)-truncateIndex, 1)])
+	}
+
+	return msg
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

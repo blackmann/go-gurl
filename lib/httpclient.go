@@ -30,12 +30,12 @@ func (c DefaultClient) MakeRequest(request Request) (Response, error) {
 	req.Header = request.Headers
 
 	res, err := c.client.Do(req)
-	defer res.Body.Close()
 
 	if err != nil {
 		log.Println("Error occurred", err)
 		return Response{}, err
 	}
+	defer res.Body.Close()
 
 	responseBody, err := io.ReadAll(res.Body)
 

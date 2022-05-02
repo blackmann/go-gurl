@@ -33,11 +33,16 @@ func (model responseModel) Update(msg tea.Msg) (responseModel, tea.Cmd) {
 		model.Init()
 	}
 
+	contentStyle := lipgloss.NewStyle().Width(model.viewport.Width)
 	switch msg := msg.(type) {
+	case lib.RequestError:
+		contentStyle = contentStyle.Foreground(lipgloss.Color(lib.ANSIRed))
+		model.viewport.SetContent(contentStyle.Render(msg.Err.Error()))
+		model.viewport.YOffset = 0
+		model.hasResponse = true
+
 	case lib.Response:
-		// wrap content
-		content := lipgloss.NewStyle().Width(model.viewport.Width).Render(msg.Render())
-		model.viewport.SetContent(content)
+		model.viewport.SetContent(contentStyle.Render(msg.Render()))
 		model.viewport.YOffset = 0
 
 		model.hasResponse = true

@@ -2,6 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/blackmann/go-gurl/lib"
 	"github.com/blackmann/go-gurl/ui/addressbar"
 	"github.com/blackmann/go-gurl/ui/bookmarks"
@@ -13,11 +19,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dustin/go-humanize"
-	"log"
-	"regexp"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type middleView int
@@ -87,8 +88,10 @@ func (m model) submitRequest(request lib.Request) tea.Cmd {
 		if response, err := m.client.MakeRequest(request); err == nil {
 			return response
 		} else {
-			// TODO: Return with good messaging
-			return err
+			return lib.RequestError{
+				Err:     err,
+				Request: &request,
+			}
 		}
 	}
 }
@@ -148,6 +151,25 @@ func (m model) handleBookmark(bookmark lib.Bookmark) (model, tea.Cmd) {
 	m.middleView = VIEWPORT
 
 	return m, nil
+}
+
+func (m model) handleRequestError(msg lib.RequestError) (model, tea.Cmd) {
+	var cmds []tea.Cmd
+	var cmd tea.Cmd
+
+	// update viewport
+	m.viewport, cmd = m.viewport.Update(msg)
+	cmds = append(cmds, cmd)
+
+	// update statusbar
+	m.statusBar, _ = m.statusBar.Update(lib.ERROR)
+	m.statusBar, _ = m.statusBar.Update(
+		lib.ShortMessage("See response tab for details"),
+	)
+
+	m.enabled = true
+
+	return m, tea.Batch(cmds...)
 }
 
 func (m model) handleResponse(msg lib.Response) (model, tea.Cmd) {
@@ -373,6 +395,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if done {
 			return t, cmd
 		}
+
+	case lib.RequestError:
+		return m.handleRequestError(msg)
 
 	case lib.Response:
 		return m.handleResponse(msg)
