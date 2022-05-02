@@ -108,7 +108,7 @@ func (model Model) View() string {
 	mutedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#999"))
 	half := lipgloss.NewStyle().Width(halfWidth) // Left/right padding removed
 
-	// we need to truncate the command entry and short message to fit one line
+	// we need to truncate the command entry to fit one line
 	commandEntry := model.commandEntry
 	modeLength := len(string(model.mode)) + 2 // for space and colon
 	commandEntry = truncateCommand(commandEntry, halfWidth, modeLength)
