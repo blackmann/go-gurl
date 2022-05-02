@@ -164,7 +164,7 @@ func (m model) handleRequestError(msg lib.RequestError) (model, tea.Cmd) {
 	// update statusbar
 	m.statusBar, _ = m.statusBar.Update(statusbar.UpdateStatus(lib.ERROR))
 	m.statusBar, _ = m.statusBar.Update(
-		lib.ShortMessage("See the response tab for the error message"),
+		lib.ShortMessage("See response tab for details"),
 	)
 
 	m.enabled = true
