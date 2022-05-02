@@ -89,9 +89,9 @@ func (model Model) View() string {
 		status = neutralStatusStyle.Render("Idle")
 
 	case lib.ERROR:
-		statusMsg := "Error"
-		status = errorStatusStyle.Render(statusMsg)
-		shortMessage = truncateMessage(shortMessage, halfWidth, len(statusMsg)*2)
+		status = errorStatusStyle.Render("Error")
+		w, _ := lipgloss.Size(status)
+		shortMessage = truncateMessage(shortMessage, halfWidth, w*2)
 
 	default:
 		value := model.status.GetValue()
