@@ -16,7 +16,7 @@ type responseModel struct {
 	width       int
 }
 
-func (model *responseModel) Init() tea.Cmd {
+func (model *responseModel) initialize() {
 	// Doing this to maintain a sturdy viewport.
 	// Removing this causes the viewport to jiggle because
 	// there's no content
@@ -24,13 +24,11 @@ func (model *responseModel) Init() tea.Cmd {
 	model.viewport.MouseWheelEnabled = true
 
 	model.initialized = true
-
-	return nil
 }
 
 func (model responseModel) Update(msg tea.Msg) (responseModel, tea.Cmd) {
 	if !model.initialized {
-		model.Init()
+		model.initialize()
 	}
 
 	contentStyle := lipgloss.NewStyle().Width(model.viewport.Width)

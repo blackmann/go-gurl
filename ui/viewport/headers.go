@@ -28,7 +28,7 @@ type headersModel struct {
 	verticalPosition activeView
 }
 
-func (model *headersModel) Init() tea.Cmd {
+func (model *headersModel) initialize() {
 	model.headerInput = textinput.New()
 
 	model.headerInput.Placeholder = "Header-Key: Value"
@@ -46,13 +46,11 @@ func (model *headersModel) Init() tea.Cmd {
 
 	model.verticalPosition = INPUT
 	model.initialized = true
-
-	return nil
 }
 
 func (model headersModel) Update(msg tea.Msg) (headersModel, tea.Cmd) {
 	if !model.initialized {
-		model.Init()
+		model.initialize()
 	}
 
 	switch msg := msg.(type) {

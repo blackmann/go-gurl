@@ -22,7 +22,7 @@ func (model requestBodyModel) Input() string {
 	return strings.Replace(model.input.Value(), encodedEnter, "\n", -1)
 }
 
-func (model *requestBodyModel) Init() tea.Cmd {
+func (model *requestBodyModel) initialize() {
 	input := textinput.New()
 	input.Focus()
 	input.Placeholder = ""
@@ -30,13 +30,11 @@ func (model *requestBodyModel) Init() tea.Cmd {
 
 	model.input = input
 	model.initialized = true
-
-	return nil
 }
 
 func (model requestBodyModel) Update(msg tea.Msg) (requestBodyModel, tea.Cmd) {
 	if !model.initialized {
-		model.Init()
+		model.initialize()
 	}
 
 	switch msg := msg.(type) {

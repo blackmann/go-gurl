@@ -8,6 +8,7 @@ import (
 	"testing"
 )
 
+// FIX: This is copy-pasted everywhere, is there a generic solution?
 func enterString(m headersModel, keys string) headersModel {
 	for _, k := range keys {
 		hKey := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{k}}
