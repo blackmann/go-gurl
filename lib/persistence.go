@@ -47,6 +47,11 @@ type Bookmark struct {
 	Url  string
 }
 
+type Cookie struct {
+	ID  uint `gorm:"primaryKey"`
+	Raw string
+}
+
 type Persistence interface {
 	SaveHistory(history History)
 	GetHistory() []History
@@ -54,6 +59,8 @@ type Persistence interface {
 	SaveBookmark(bookmark Bookmark)
 	GetBookmarks() []Bookmark
 	GetBookmark(name string) (Bookmark, error)
+	SaveRawCookies(rawCookie string)
+	GetRawCookies() string
 }
 
 type DbPersistence struct {
@@ -108,10 +115,27 @@ func (d DbPersistence) GetHistory() []History {
 	return res
 }
 
+func (d DbPersistence) SaveRawCookies(rawCookie string) {
+	var count int64
+	if d.db.Model(&Cookie{}).Count(&count); count == 0 {
+		d.db.Create(&Cookie{Raw: rawCookie})
+	} else {
+		var last Cookie
+		_ = d.db.Last(&last)
+		d.db.Model(&last).Update("raw", rawCookie)
+	}
+}
+
+func (d DbPersistence) GetRawCookies() string {
+	var res Cookie
+	d.db.First(&res)
+
+	return res.Raw
+}
+
 func NewDbPersistence() (DbPersistence, error) {
 	if db, err := gorm.Open(sqlite.Open("config.db"), &gorm.Config{}); err == nil {
-		db.AutoMigrate(&History{})
-		db.AutoMigrate(&Bookmark{})
+		db.AutoMigrate(&History{}, &Bookmark{}, &Cookie{})
 
 		return DbPersistence{db: db}, nil
 	} else {

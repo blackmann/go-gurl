@@ -7,6 +7,7 @@ import (
 
 type Response struct {
 	Body    []byte
+	Cookies []*http.Cookie
 	Headers http.Header
 	Status  int
 	Time    int64

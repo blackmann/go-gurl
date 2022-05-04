@@ -202,10 +202,17 @@ func (m model) handleResponse(msg lib.Response) (model, tea.Cmd) {
 		Body:    msg.Request.Body,
 	})
 
+	go m.updateCookieStore()
+
 	newHistory := func() tea.Msg { return lib.UpdateHistory }
 	cmds = append(cmds, newHistory)
 
 	return m, tea.Batch(cmds...)
+}
+
+func (m model) updateCookieStore() {
+	raw := m.client.GetRawCookies()
+	m.persistence.SaveRawCookies(raw)
 }
 
 func (m model) handleTrigger(msg lib.Trigger) (model, tea.Cmd, bool) {
@@ -521,9 +528,11 @@ func newAppModel() (model, error) {
 		return model{}, err
 	}
 
+	rawCookies := db.GetRawCookies()
+
 	return model{
 		addressBar:    addressbar.NewAddressBar(),
-		client:        lib.NewHttpClient(),
+		client:        lib.NewHttpClient(rawCookies),
 		keybinds:      lib.DefaultKeyBinds(),
 		statusBar:     statusbar.NewStatusBar(),
 		viewport:      viewport.NewViewport(),

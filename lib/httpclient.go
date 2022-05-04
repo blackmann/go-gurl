@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"github.com/blackmann/go-gurl/fork/http/cookiejar"
 	"io"
 	"log"
 	"net/http"
@@ -10,14 +11,19 @@ import (
 
 type Client interface {
 	MakeRequest(request Request) (Response, error)
+	GetRawCookies() string
 }
 
 type DefaultClient struct {
 	client *http.Client
+	jar    *cookiejar.Jar
 }
 
-func NewHttpClient() DefaultClient {
-	return DefaultClient{client: &http.Client{}}
+func NewHttpClient(rawCookies string) DefaultClient {
+	jar := cookiejar.Jar{}
+	jar.LoadCookies(strings.NewReader(rawCookies))
+
+	return DefaultClient{client: &http.Client{Jar: &jar}, jar: &jar}
 }
 
 func (c DefaultClient) MakeRequest(request Request) (Response, error) {
@@ -48,9 +54,17 @@ func (c DefaultClient) MakeRequest(request Request) (Response, error) {
 
 	return Response{
 		Body:    responseBody,
+		Cookies: res.Cookies(),
 		Headers: res.Header,
 		Status:  res.StatusCode,
 		Time:    timeTaken,
 		Request: request,
 	}, nil
+}
+
+func (c DefaultClient) GetRawCookies() string {
+	res := strings.Builder{}
+	c.jar.AllCookies(&res)
+
+	return res.String()
 }
