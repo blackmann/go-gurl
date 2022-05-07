@@ -40,7 +40,7 @@ func (model responseModel) Update(msg tea.Msg) (responseModel, tea.Cmd) {
 		model.hasResponse = true
 
 	case lib.Response:
-		model.viewport.SetContent(contentStyle.Render(msg.Render()))
+		model.viewport.SetContent(contentStyle.Render(msg.Render(true)))
 		model.viewport.YOffset = 0
 
 		model.hasResponse = true

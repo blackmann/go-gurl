@@ -90,7 +90,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.list.ResetSelected()
 		return m, nil
 
-	case lib.Trigger:
+	case lib.Event:
 		if msg == lib.UpdateHistory {
 			m.history = m.persistence.GetHistory()
 			m.list.Select(0)

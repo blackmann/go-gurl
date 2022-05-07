@@ -66,4 +66,10 @@ You can then use the bookmark in making requests (in the addressbar as)
 POST @typicode/todos/
 ```
 
+### Save Response
 
+You can save the response from a request to a file by doing (in command mode `esc`)
+
+```
+/save shops.json
+```

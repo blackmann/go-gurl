@@ -60,7 +60,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		m.list.SetItems(bookmarks)
 
-	case lib.Trigger:
+	case lib.Event:
 		switch msg {
 		case lib.UpdateBookmarks:
 			m.fetchBookmarks()

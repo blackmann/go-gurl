@@ -72,7 +72,7 @@ func (model headersModel) Update(msg tea.Msg) (headersModel, tea.Cmd) {
 
 		return model, cmd
 
-	case lib.Trigger:
+	case lib.Event:
 		if model.verticalPosition == LIST {
 			switch msg {
 			case lib.LostFocus:

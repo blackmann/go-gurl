@@ -1,6 +1,8 @@
 package lib
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"strings"
 )
@@ -14,14 +16,21 @@ type Response struct {
 	Request Request
 }
 
-func (response Response) Render() string {
+func (response Response) Render(pretty bool) string {
 	contentType := response.Headers.Get("content-type")
 
 	if strings.HasPrefix(contentType, "application/json") {
-		p := ColoredPrettier()
-		if pretty, err := p.HighlightJson(string(response.Body)); err == nil {
-			return pretty
+		if pretty {
+			p := ColoredPrettier()
+			if prettyJson, err := p.HighlightJson(string(response.Body)); err == nil {
+				return prettyJson
+			}
 		}
+
+		var out bytes.Buffer
+		json.Indent(&out, response.Body, "", "  ")
+
+		return out.String()
 	}
 
 	return string(response.Body)

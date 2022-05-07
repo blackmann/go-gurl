@@ -105,7 +105,7 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		return model, cmd
 
-	case lib.Trigger:
+	case lib.Event:
 		switch msg {
 		case lib.TabLeft:
 			if model.activeTab > 0 {

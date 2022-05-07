@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -50,11 +51,12 @@ type model struct {
 	bookmarksList bookmarks.Model
 
 	// State
-	activeRegion region
-	commandMode  bool
-	command      string
-	enabled      bool
-	height       int
+	activeRegion    region
+	commandMode     bool
+	currentResponse *lib.Response
+	command         string
+	enabled         bool
+	height          int
 	middleView
 }
 
@@ -71,6 +73,22 @@ func (m model) annotate(argsString string) (model, tea.Cmd) {
 	}
 
 	return m, updateHistory
+}
+
+func (m model) saveResponse(filename string) (model, tea.Cmd) {
+	if m.currentResponse != nil {
+		if f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666); err == nil {
+			f.Write([]byte(m.currentResponse.Render(false)))
+
+			f.Close()
+
+			return m, func() tea.Msg {
+				return lib.SavedResponse
+			}
+		}
+	}
+
+	return m, nil
 }
 
 func (m model) createBookmark(parts []string) (model, tea.Cmd) {
@@ -168,6 +186,7 @@ func (m model) handleRequestError(msg lib.RequestError) (model, tea.Cmd) {
 	)
 
 	m.enabled = true
+	m.currentResponse = nil
 
 	return m, tea.Batch(cmds...)
 }
@@ -184,8 +203,6 @@ func (m model) handleResponse(msg lib.Response) (model, tea.Cmd) {
 		// TODO: humanize the time
 		lib.ShortMessage(fmt.Sprintf("%dms %s", msg.Time, humanize.Bytes(uint64(len(msg.Body))))),
 	)
-
-	m.enabled = true
 
 	var headers = make(map[string][]string)
 
@@ -207,6 +224,9 @@ func (m model) handleResponse(msg lib.Response) (model, tea.Cmd) {
 	newHistory := func() tea.Msg { return lib.UpdateHistory }
 	cmds = append(cmds, newHistory)
 
+	m.enabled = true
+	m.currentResponse = &msg
+
 	return m, tea.Batch(cmds...)
 }
 
@@ -215,7 +235,7 @@ func (m model) updateCookieStore() {
 	m.persistence.SaveRawCookies(raw)
 }
 
-func (m model) handleTrigger(msg lib.Trigger) (model, tea.Cmd, bool) {
+func (m model) handleTrigger(msg lib.Event) (model, tea.Cmd, bool) {
 	switch msg {
 	case lib.NewRequest:
 		var cmds []tea.Cmd
@@ -265,6 +285,10 @@ func (m model) handleTrigger(msg lib.Trigger) (model, tea.Cmd, bool) {
 
 	case lib.UpdateBookmarks:
 		m.bookmarksList, _ = m.bookmarksList.Update(msg)
+		return m, nil, true
+
+	case lib.SavedResponse:
+		m.statusBar, _ = m.statusBar.Update(lib.ShortMessage("Saved!"))
 		return m, nil, true
 
 	default:
@@ -391,13 +415,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch parts[0] {
 			case "/annotate":
 				return m.annotate(parts[1])
+
+			case "/save":
+				return m.saveResponse(parts[1])
 			}
 		}
 
 		m.resetCommandInput()
 		return m, nil
 
-	case lib.Trigger:
+	case lib.Event:
 		t, cmd, done := m.handleTrigger(msg)
 		if done {
 			return t, cmd
@@ -425,7 +452,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			var cmd tea.Cmd
 
 			// A message that could be passed to the addressBar includes
-			// the enter key. In this case, the addressBar returns a Trigger:NewRequest
+			// the enter key. In this case, the addressBar returns a Event:NewRequest
 			// Whether to go ahead with this trigger will be handled below
 			m.addressBar, cmd = m.addressBar.Update(msg)
 
@@ -451,7 +478,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					if (isHistoryEntry(addressEntry) || isBookmarkEntry(addressEntry)) &&
 						msg.Type == tea.KeyEnter {
-						// Still typing a bookmark or address, so  remove the Trigger (New Request)
+						// Still typing a bookmark or address, so  remove the Event (New Request)
 						submitRequest := cmds[len(cmds)-1]
 						cmds = cmds[:len(cmds)-1]
 

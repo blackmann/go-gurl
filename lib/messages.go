@@ -12,16 +12,18 @@ var (
 	Detail Mode = "xfg"
 )
 
-type Trigger int
+type Event int
 
 var (
-	NewRequest Trigger = 1
-	LostFocus  Trigger = 2
-	GainFocus  Trigger = 3
+	NewRequest Event = 1
+	LostFocus  Event = 2
+	GainFocus  Event = 3
 
-	TabLeft  Trigger = 4
-	TabRight Trigger = 5
+	TabLeft  Event = 4
+	TabRight Event = 5
 
-	UpdateHistory   Trigger = 6
-	UpdateBookmarks Trigger = 7
+	UpdateHistory   Event = 6
+	UpdateBookmarks Event = 7
+
+	SavedResponse Event = 10
 )
