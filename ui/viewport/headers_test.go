@@ -8,16 +8,6 @@ import (
 	"testing"
 )
 
-// FIX: This is copy-pasted everywhere, is there a generic solution?
-func enterString(m headersModel, keys string) headersModel {
-	for _, k := range keys {
-		hKey := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{k}}
-		m, _ = m.Update(hKey)
-	}
-
-	return m
-}
-
 func TestHeadersModel_Init(t *testing.T) {
 	model, _ := headersModel{}.Update(nil)
 
@@ -42,7 +32,7 @@ func TestHeadersModel_Update_Header(t *testing.T) {
 func TestHeadersModel_Update_HeaderInput(t *testing.T) {
 	model, _ := headersModel{}.Update(nil)
 	header := "accept: application/json"
-	model = enterString(model, header)
+	model = lib.EnterString(model, header)
 
 	assert.Contains(t, model.View(), header)
 
@@ -66,15 +56,15 @@ func TestHeadersModel_Update_NavigateList(t *testing.T) {
 	model, _ = model.Update(header)
 
 	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyDown})
-	assert.Equal(t, model.verticalPosition, LIST)
+	assert.Equal(t, model.(headersModel).verticalPosition, LIST)
 
 	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyDown})
-	assert.Equal(t, model.list.SelectedItem().(lib.Pair).Key, "Accept")
+	assert.Equal(t, model.(headersModel).list.SelectedItem().(lib.Pair).Key, "Accept")
 
 	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyUp})
 	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyUp})
 
-	assert.Equal(t, model.verticalPosition, INPUT)
+	assert.Equal(t, model.(headersModel).verticalPosition, INPUT)
 }
 
 func TestHeadersModel_Update_InputIntoList(t *testing.T) {
@@ -88,9 +78,9 @@ func TestHeadersModel_Update_InputIntoList(t *testing.T) {
 	model, _ = model.Update(header)
 
 	model, _ = model.Update(tea.KeyMsg{Type: tea.KeyDown})
-	assert.Equal(t, model.verticalPosition, LIST)
+	assert.Equal(t, model.(headersModel).verticalPosition, LIST)
 
-	model = enterString(model, "new-entry: ")
+	model = lib.EnterString(model, "new-entry: ")
 
 	assert.NotContains(t, model.View(), "new-entry")
 }

@@ -48,7 +48,11 @@ func (model *headersModel) initialize() {
 	model.initialized = true
 }
 
-func (model headersModel) Update(msg tea.Msg) (headersModel, tea.Cmd) {
+func (model headersModel) Init() tea.Cmd {
+	return nil
+}
+
+func (model headersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if !model.initialized {
 		model.initialize()
 	}

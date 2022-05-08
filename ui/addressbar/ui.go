@@ -9,11 +9,19 @@ import (
 	"strings"
 )
 
-type Model struct {
+type Model interface {
+	Init() tea.Cmd
+	Update(msg tea.Msg) (tea.Model, tea.Cmd)
+	View() string
+	GetAddress() (lib.Address, error)
+	GetEntry() string
+}
+
+type model struct {
 	input textinput.Model
 }
 
-func (model Model) Init() tea.Cmd {
+func (model model) Init() tea.Cmd {
 	return textinput.Blink
 }
 
@@ -24,10 +32,10 @@ func NewAddressBar() Model {
 
 	t.Focus()
 
-	return Model{input: t}
+	return model{input: t}
 }
 
-func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+func (model model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -54,11 +62,11 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return model, cmd
 }
 
-func (model Model) View() string {
+func (model model) View() string {
 	return model.input.View()
 }
 
-func (model Model) GetAddress() (lib.Address, error) {
+func (model model) GetAddress() (lib.Address, error) {
 	trimmedAddr := strings.Trim(model.input.Value(), " ")
 
 	if len(trimmedAddr) == 0 {
@@ -79,6 +87,6 @@ func (model Model) GetAddress() (lib.Address, error) {
 	return lib.Address{Method: strings.ToUpper(method), Url: endpoint}, nil
 }
 
-func (model Model) GetEntry() string {
+func (model model) GetEntry() string {
 	return model.input.Value()
 }

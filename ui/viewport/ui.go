@@ -27,8 +27,8 @@ type Model struct {
 
 	// tabs
 	responseModel        responseModel
-	requestBodyModel     requestBodyModel
-	headersModel         headersModel
+	requestBodyModel     RequestBodyModel
+	headersModel         tea.Model
 	responseHeadersModel responseHeadersModel
 }
 
@@ -40,10 +40,14 @@ func NewViewport() Model {
 	}
 
 	return Model{
-		tabs:                 tabs,
-		keybinds:             keybinds,
+		tabs:     tabs,
+		keybinds: keybinds,
+		headers:  http.Header{},
+
+		// Views
 		responseHeadersModel: newResponseHeadersModel(),
-		headers:              http.Header{},
+		requestBodyModel:     newRequestBodyModel(),
+		headersModel:         headersModel{},
 	}
 }
 
@@ -75,7 +79,11 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			case 0:
 				model.headersModel, cmd = model.headersModel.Update(msg)
 			case 1:
-				model.requestBodyModel, cmd = model.requestBodyModel.Update(msg)
+				var tmp tea.Model
+				tmp, cmd = model.requestBodyModel.Update(msg)
+
+				model.requestBodyModel = tmp.(RequestBodyModel)
+
 			case 2:
 				model.responseModel, cmd = model.responseModel.Update(msg)
 			case 3:
@@ -90,7 +98,10 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		resizeMsg := tea.WindowSizeMsg{Height: renderHeight, Width: msg.Width}
 
 		model.responseModel, _ = model.responseModel.Update(resizeMsg)
-		model.requestBodyModel, _ = model.requestBodyModel.Update(resizeMsg)
+
+		tmp, _ := model.requestBodyModel.Update(resizeMsg)
+		model.requestBodyModel = tmp.(RequestBodyModel)
+
 		model.headersModel, _ = model.headersModel.Update(resizeMsg)
 		model.responseHeadersModel, _ = model.responseHeadersModel.Update(resizeMsg)
 
@@ -132,9 +143,13 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		model.headers = headers
 
 		model.headersModel, _ = model.headersModel.Update(headers)
-		model.requestBodyModel, _ = model.requestBodyModel.Update(requestBody(msg.Body))
+		tmp, _ := model.requestBodyModel.Update(requestBody(msg.Body))
+		model.requestBodyModel = tmp.(RequestBodyModel)
+
 		model.responseModel.Reset()
 		model.responseHeadersModel.Reset()
+
+		return model, nil
 	}
 
 	var cmds []tea.Cmd
@@ -142,7 +157,10 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	model.responseModel, cmd = model.responseModel.Update(msg)
 	cmds = append(cmds, cmd)
 
-	model.requestBodyModel, cmd = model.requestBodyModel.Update(msg)
+	var tmp tea.Model
+	tmp, cmd = model.requestBodyModel.Update(msg)
+	model.requestBodyModel = tmp.(RequestBodyModel)
+	
 	cmds = append(cmds, cmd)
 
 	model.headersModel, cmd = model.headersModel.Update(msg)

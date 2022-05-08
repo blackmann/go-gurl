@@ -11,11 +11,22 @@ var encodedEnter = "¶"
 
 type requestBody string
 
+type RequestBodyModel interface {
+	Init() tea.Cmd
+	Update(msg tea.Msg) (tea.Model, tea.Cmd)
+	View() string
+	Input() string
+}
+
 type requestBodyModel struct {
 	input textinput.Model
 
 	initialized bool
 	height      int
+}
+
+func newRequestBodyModel() RequestBodyModel {
+	return requestBodyModel{}
 }
 
 func (model requestBodyModel) Input() string {
@@ -32,7 +43,11 @@ func (model *requestBodyModel) initialize() {
 	model.initialized = true
 }
 
-func (model requestBodyModel) Update(msg tea.Msg) (requestBodyModel, tea.Cmd) {
+func (model requestBodyModel) Init() tea.Cmd {
+	return nil
+}
+
+func (model requestBodyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if !model.initialized {
 		model.initialize()
 	}

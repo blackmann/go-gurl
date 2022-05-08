@@ -153,7 +153,8 @@ func (m model) performResize(msg tea.WindowSizeMsg) (model, tea.Cmd) {
 
 func (m model) handleHistory(history lib.History) (model, tea.Cmd) {
 	m.viewport, _ = m.viewport.Update(history)
-	m.addressBar, _ = m.addressBar.Update(lib.Address{Url: history.Url, Method: history.Method})
+	tmp, _ := m.addressBar.Update(lib.Address{Url: history.Url, Method: history.Method})
+	m.addressBar = tmp.(addressbar.Model)
 
 	m.middleView = VIEWPORT
 
@@ -165,7 +166,9 @@ func (m model) handleBookmark(bookmark lib.Bookmark) (model, tea.Cmd) {
 	parts := strings.Split(entry, "@")
 	autocomplete := fmt.Sprintf("%s@%s", parts[0], bookmark.Name)
 
-	m.addressBar, _ = m.addressBar.Update(autocomplete)
+	ab, _ := m.addressBar.Update(autocomplete)
+	m.addressBar = ab.(addressbar.Model)
+
 	m.middleView = VIEWPORT
 
 	return m, nil
@@ -454,7 +457,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// A message that could be passed to the addressBar includes
 			// the enter key. In this case, the addressBar returns a Event:NewRequest
 			// Whether to go ahead with this trigger will be handled below
-			m.addressBar, cmd = m.addressBar.Update(msg)
+			var tmp tea.Model
+			tmp, cmd = m.addressBar.Update(msg)
+			m.addressBar = tmp.(addressbar.Model)
 
 			cmds = append(cmds, cmd)
 
