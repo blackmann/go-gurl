@@ -12,9 +12,7 @@ var encodedEnter = "¶"
 type requestBody string
 
 type RequestBodyModel interface {
-	Init() tea.Cmd
-	Update(msg tea.Msg) (tea.Model, tea.Cmd)
-	View() string
+	tea.Model
 	Input() string
 }
 

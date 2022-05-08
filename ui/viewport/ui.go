@@ -26,10 +26,10 @@ type Model struct {
 	headers http.Header
 
 	// tabs
-	responseModel        responseModel
+	responseModel        tea.Model
 	requestBodyModel     RequestBodyModel
 	headersModel         tea.Model
-	responseHeadersModel responseHeadersModel
+	responseHeadersModel tea.Model
 }
 
 func NewViewport() Model {
@@ -48,6 +48,7 @@ func NewViewport() Model {
 		responseHeadersModel: newResponseHeadersModel(),
 		requestBodyModel:     newRequestBodyModel(),
 		headersModel:         headersModel{},
+		responseModel:        responseModel{},
 	}
 }
 
@@ -146,21 +147,21 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		tmp, _ := model.requestBodyModel.Update(requestBody(msg.Body))
 		model.requestBodyModel = tmp.(RequestBodyModel)
 
-		model.responseModel.Reset()
-		model.responseHeadersModel.Reset()
+		model.responseModel, _ = model.responseModel.Update(lib.Reset)
+		model.responseHeadersModel, _ = model.responseHeadersModel.Update(lib.Reset)
 
 		return model, nil
 	}
 
 	var cmds []tea.Cmd
+	var tmp tea.Model
 
 	model.responseModel, cmd = model.responseModel.Update(msg)
 	cmds = append(cmds, cmd)
 
-	var tmp tea.Model
 	tmp, cmd = model.requestBodyModel.Update(msg)
 	model.requestBodyModel = tmp.(RequestBodyModel)
-	
+
 	cmds = append(cmds, cmd)
 
 	model.headersModel, cmd = model.headersModel.Update(msg)

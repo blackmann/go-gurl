@@ -10,9 +10,7 @@ import (
 )
 
 type Model interface {
-	Init() tea.Cmd
-	Update(msg tea.Msg) (tea.Model, tea.Cmd)
-	View() string
+	tea.Model
 	GetAddress() (lib.Address, error)
 	GetEntry() string
 }

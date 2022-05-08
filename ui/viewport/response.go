@@ -28,7 +28,11 @@ func (model *responseModel) initialize() {
 	model.initialized = true
 }
 
-func (model responseModel) Update(msg tea.Msg) (responseModel, tea.Cmd) {
+func (model responseModel) Init() tea.Cmd {
+	return nil
+}
+
+func (model responseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if !model.initialized {
 		model.initialize()
 	}
@@ -40,7 +44,7 @@ func (model responseModel) Update(msg tea.Msg) (responseModel, tea.Cmd) {
 		contentStyle = contentStyle.Foreground(lipgloss.Color(lib.ANSIRed))
 		model.viewport.SetContent(contentStyle.Render(msg.Err.Error()))
 		model.viewport.YOffset = 0
-		
+
 		model.hasResponse = true
 
 	case lib.Response:
@@ -55,6 +59,12 @@ func (model responseModel) Update(msg tea.Msg) (responseModel, tea.Cmd) {
 
 		model.height = msg.Height
 		model.width = msg.Width
+
+	case lib.Event:
+		if msg == lib.Reset {
+			model.viewport.SetContent("")
+			model.hasResponse = false
+		}
 	}
 
 	var cmd tea.Cmd
@@ -71,9 +81,4 @@ func (model responseModel) View() string {
 	}
 
 	return lipgloss.NewStyle().Padding(0, 2, 0, 2).Render(model.viewport.View())
-}
-
-func (model *responseModel) Reset() {
-	model.viewport.SetContent("")
-	model.hasResponse = false
 }

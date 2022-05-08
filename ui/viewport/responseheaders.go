@@ -11,7 +11,7 @@ type responseHeadersModel struct {
 	headersList list.Model
 }
 
-func newResponseHeadersModel() responseHeadersModel {
+func newResponseHeadersModel() tea.Model {
 	listDefinition := list.New([]list.Item{}, lib.GetDefaultListDelegate(), 0, 0)
 	listDefinition.SetShowTitle(false)
 	listDefinition.SetFilteringEnabled(false)
@@ -19,12 +19,16 @@ func newResponseHeadersModel() responseHeadersModel {
 
 	listDefinition.KeyMap.ShowFullHelp.Unbind()
 
-	return responseHeadersModel{
+	return &responseHeadersModel{
 		headersList: listDefinition,
 	}
 }
 
-func (model responseHeadersModel) Update(msg tea.Msg) (responseHeadersModel, tea.Cmd) {
+func (model responseHeadersModel) Init() tea.Cmd {
+	return nil
+}
+
+func (model responseHeadersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		model.headersList.SetSize(msg.Width-2, msg.Height)
@@ -41,6 +45,13 @@ func (model responseHeadersModel) Update(msg tea.Msg) (responseHeadersModel, tea
 		cmd := model.headersList.SetItems(items)
 
 		return model, cmd
+
+	case lib.Event:
+		if msg == lib.Reset {
+			model.headersList.SetItems([]list.Item{})
+
+			return model, nil
+		}
 	}
 
 	var cmd tea.Cmd
@@ -51,8 +62,4 @@ func (model responseHeadersModel) Update(msg tea.Msg) (responseHeadersModel, tea
 
 func (model responseHeadersModel) View() string {
 	return model.headersList.View()
-}
-
-func (model *responseHeadersModel) Reset() {
-	model.headersList.SetItems([]list.Item{})
 }
