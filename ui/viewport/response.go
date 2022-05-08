@@ -21,7 +21,9 @@ func (model *responseModel) initialize() {
 	// Removing this causes the viewport to jiggle because
 	// there's no content
 	model.viewport.SetContent("")
-	model.viewport.MouseWheelEnabled = true
+
+	// This only works in tea.WithMouseCellMotion()
+	//model.viewport.MouseWheelEnabled = true
 
 	model.initialized = true
 }
@@ -32,11 +34,13 @@ func (model responseModel) Update(msg tea.Msg) (responseModel, tea.Cmd) {
 	}
 
 	contentStyle := lipgloss.NewStyle().Width(model.viewport.Width)
+
 	switch msg := msg.(type) {
 	case lib.RequestError:
 		contentStyle = contentStyle.Foreground(lipgloss.Color(lib.ANSIRed))
 		model.viewport.SetContent(contentStyle.Render(msg.Err.Error()))
 		model.viewport.YOffset = 0
+		
 		model.hasResponse = true
 
 	case lib.Response:
