@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/atotto/clipboard"
 	"github.com/blackmann/go-gurl/lib"
 	"github.com/blackmann/go-gurl/ui/addressbar"
 	"github.com/blackmann/go-gurl/ui/bookmarks"
@@ -105,6 +106,17 @@ func (m model) saveResponse(argsString string) (model, tea.Cmd) {
 				return lib.SavedResponse
 			}
 		}
+	}
+
+	return m, nil
+}
+
+func (m model) copyResponse(argsString string) (model, tea.Cmd) {
+	if len(argsString) == 0 {
+		_ = clipboard.WriteAll(m.currentResponse.Render(false))
+	} else {
+		selected := gjson.Get(m.currentResponse.Render(false), argsString).String()
+		_ = clipboard.WriteAll(selected)
 	}
 
 	return m, nil
@@ -440,6 +452,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			case "/save":
 				return m.saveResponse(parts[1])
+
+			case "/copy":
+				return m.copyResponse(parts[1])
 			}
 		}
 
