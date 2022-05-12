@@ -40,8 +40,9 @@ go install github.com/blackmann/go-gurl
 
 ### History
 
-When requests are made, they are saved into history. To trigger the history modal, enter a leading `$`. 
-You can filter the history with ID number or annotation. Selecting a history item will prefill all request fields (address, headers and body).
+When requests are made, they are saved into history. To trigger the history modal, enter a leading `$`.
+You can filter the history with ID number or annotation. Selecting a history item will prefill all request fields (
+address, headers and body).
 
 To annotate history, first find the history ID then enter command mode (`esc`) then type
 
@@ -53,8 +54,9 @@ This feature is useful when you run a request very often when testing.
 
 ### Bookmarks
 
-Bookmarks allow to you create and use alias for base paths/endpoints. 
-For example, if you mostly work with an endpoint `https://jsonplaceholder.typicode.com`, you can be able to create a bookmark with (in command mode `esc`)
+Bookmarks allow to you create and use alias for base paths/endpoints.
+For example, if you mostly work with an endpoint `https://jsonplaceholder.typicode.com`, you can be able to create a
+bookmark with (in command mode `esc`)
 
 ```
 @typicode https://jsonplaceholder.typicode.com
@@ -72,4 +74,45 @@ You can save the response from a request to a file by doing (in command mode `es
 
 ```
 /save shops.json
+```
+
+You can also save a selected/queried parts of the response. For example, say you have a response with the following
+structure:
+
+```json
+{
+  "total": 3,
+  "limit": 10,
+  "skip": 0,
+  "data": [
+    {
+      "name": "Angelina Cudjoe",
+      "age": 100,
+      "cute": true
+    },
+    {
+      "name": "Jane Doe",
+      "age": 80,
+      "cute": false
+    }
+  ]
+}
+```
+
+You can query and save the names from each object like this
+
+```
+/save people.json data.#.name
+```
+
+This saves `["Angelina Cudjoe", "Jane Doe"]` to `people.json`. 
+Queries are processed using this library [gjson](https://github.com/tidwall/gjson). 
+Check it out for all the possible query formats.
+
+### Copy Response 
+
+You can copy the response to your clipboard. Do the following [with an optional selector just like the save command]
+
+```
+/copy optional.selector
 ```
