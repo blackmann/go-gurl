@@ -20,6 +20,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dustin/go-humanize"
+	"github.com/tidwall/gjson"
 )
 
 type middleView int
@@ -75,10 +76,28 @@ func (m model) annotate(argsString string) (model, tea.Cmd) {
 	return m, updateHistory
 }
 
-func (m model) saveResponse(filename string) (model, tea.Cmd) {
+func (m model) saveResponse(argsString string) (model, tea.Cmd) {
+	// let's agree file names cannot contain spaces
+
+	parts := strings.Split(argsString, " ")
+	filename := parts[0]
+
+	var selector string
+
+	if len(parts) > 1 {
+		selector = parts[1]
+	}
+
 	if m.currentResponse != nil {
 		if f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666); err == nil {
-			f.Write([]byte(m.currentResponse.Render(false)))
+			out := m.currentResponse.Render(false)
+
+			if strings.HasPrefix(m.currentResponse.Headers.Get("content-type"),
+				"application/json") && selector != "" {
+				out = gjson.Get(out, selector).String()
+			}
+
+			f.Write([]byte(out))
 
 			f.Close()
 
