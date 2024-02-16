@@ -92,15 +92,23 @@ func (model headersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			if model.verticalPosition == INPUT {
 				parts := strings.Split(model.headerInput.Value(), ":")
-				key, value := strings.Trim(parts[0], " "), strings.Trim(parts[1], " ")
+				var (
+					key   string
+					value string
+				)
+				if len(parts) < 2 {
+					return model, nil
+				} else {
+					key = strings.Trim(parts[0], " ")
+					value = strings.Trim(strings.Join(parts[1:], ":"), " ")
+					cmd := func() tea.Msg {
+						return lib.Pair{Key: key, Value: value}
+					}
 
-				cmd := func() tea.Msg {
-					return lib.Pair{Key: key, Value: value}
+					model.headerInput.SetValue("")
+
+					return model, cmd
 				}
-
-				model.headerInput.SetValue("")
-
-				return model, cmd
 			}
 
 		case tea.KeyUp:
