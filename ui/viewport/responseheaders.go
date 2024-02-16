@@ -1,10 +1,12 @@
 package viewport
 
 import (
+	"sort"
+	"strings"
+
 	"github.com/blackmann/go-gurl/lib"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"strings"
 )
 
 type responseHeadersModel struct {
@@ -41,6 +43,23 @@ func (model responseHeadersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				Value: strings.Join(values, ","),
 			})
 		}
+
+		sort.Slice(items, func(i, j int) bool {
+			var (
+				headerA, okA = items[i].(lib.Pair)
+				headerB, okB = items[j].(lib.Pair)
+			)
+
+			if !okA && !okB {
+				return false
+			} else if !okA {
+				return strings.Compare("", headerB.Title()) < 0
+			} else if !okB {
+				return strings.Compare(headerA.Title(), "") < 0
+			}
+
+			return strings.Compare(headerA.Title(), headerB.Title()) < 0
+		})
 
 		cmd := model.headersList.SetItems(items)
 
